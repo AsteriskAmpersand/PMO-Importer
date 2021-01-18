@@ -2,7 +2,8 @@
 MHFU PMO Importer
 
 Blender MHFU PMO Importer
-Developed partially from documentation by Seth VanHeulen and original research by myself (*&).
+Developed partially from documentation by Seth VanHeulen and original research by myself (\*&).
+Thanks to IncognitoMan for his assistance in the logistics side of reversing the format.
 Seth research can be found here: https://gitlab.com/svanheulen/mhff
 
 # Format Documentation

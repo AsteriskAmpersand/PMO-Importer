@@ -383,7 +383,8 @@ The vertex buffer has a specific ordering additionally the fields are followed b
 | UV | Int32 |
 | Colour | None |
 | Normal | Int32 |
-| Position | None |
+| Position | None |  
+
 Note that the vertex buffer padding and thus size doesn't depend on the start of each vertex, padding is calculated once when building the buffer not when reading into it.
 
 ### FACE

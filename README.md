@@ -1,7 +1,6 @@
-# PMO-Importer
-MHFU PMO Importer
+![Chomp!](https://cdn.discordapp.com/attachments/521438182311460879/800550381054328862/PMOImporter.fw.png)
 
-Blender MHFU PMO Importer
+# Blender MHFU PMO Importer
 Developed partially from documentation by Seth VanHeulen and original research by myself (\*&).  
 Thanks to IncognitoMan for his assistance in the logistics side of reversing the format.  
 Seth research can be found here: https://gitlab.com/svanheulen/mhff
@@ -13,6 +12,35 @@ PMO (speculatively "Portable Model" or "Portable Media Object") files are broken
 PMO contains model geometry and material data. Skeleton data is on a contiguous file, material data interfaces with a texture format that's also contiguous to the model file.+
 
 Each major section is padded to int64 alignment this fact will be omitted from here on.
+
+- [Format Documentation](#format-documentation)
+  * [Header](#header)
+  * [Mesh Headers](#mesh-headers)
+  * [Tristrip Headers](#tristrip-headers)
+  * [Material Remap](#material-remap)
+  * [Bone Data](#bone-data)
+  * [Bone Data Parsing Example](#bone-data-parsing-example)
+      - [Sample Tristrip](#sample-tristrip)
+      - [Sample Bone Data](#sample-bone-data)
+      - [Sample Vertex](#sample-vertex)
+    + [Parsing Example](#parsing-example)
+      - [Step 0](#step-0)
+      - [Step 1](#step-1)
+      - [Step 1](#step-1-1)
+      - [Step 2](#step-2)
+      - [Step 3](#step-3)
+  * [Material Data](#material-data)
+  * [Mesh Data](#mesh-data)
+  * [Semi-Imperative](#semi-imperative)
+    + [BASE](#base)
+    + [START](#start)
+    + [IADDR](#iaddr)
+    + [VADDR](#vaddr)
+    + [VTYPE](#vtype)
+    + [FACE](#face)
+    + [PRIM](#prim)
+    + [RET](#ret)
+  * [Reading the Mesh Buffer](#reading-the-mesh-buffer)
 
 ## Header 
 The structure begins with a header:

@@ -4,11 +4,13 @@ Created on Thu Jan 14 22:39:43 2021
 
 @author: AsteriskAmpersand
 """
-import construct as C
+#import construct as C
 try:
     from .pmo_parse import run_ge
+    from .. import construct_plugin as C
 except:
     from pmo_parse import run_ge
+    import construct as C
     #from pmo_parse_orig import run_ge
 alignment = C.Struct(
         "pos" / C.Tell,
@@ -58,6 +60,7 @@ Skeleton = C.Struct(
     )
 
 MaterialContent = C.Struct(
+    "index" / C.Computed(C.this._index),
     "rgba" / C.Int8ul[4],
     "rgba2" / C.Int8ul[4],
     "textureID" / C.Int32sl,
@@ -116,7 +119,7 @@ def load_pmo(pmopath):
                 v,f = run_ge(inf,weightData)
                 faces += [tuple(map(lambda x: x + len(verts),face)) for face in f]
                 verts += v
-                materials += [mat.textureID for face in f]
+                materials += [mat.index for face in f]
             meshes.append((verts,faces,materials,pmo.header.scale,mesh.uvScale))
     return meshes,pmo
 

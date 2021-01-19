@@ -140,9 +140,14 @@ class ImportPMO(Operator, ImportHelper):
         meshes,pmo = load_pmo(self.properties.filepath)
         materials = self.createTexMaterials(pmo)
         self.setClip(pmo.header.clippingDistance)
-        for mesh in meshes:
-            self.loadMesh(materials,*mesh)
+        for metadata,mesh in zip(pmo.meshHeaders,meshes):
+            obj = self.loadMesh(materials,*mesh)
+            self.writeMetadata(obj,metadata)
         return {'FINISHED'}
+    
+    def writeMetadata(self,obj,data):
+        for ix,var in enumerate(data.unkn1):
+            obj.data["unkn01-%02d"%ix] = var
     
     def fetchTexture(self,filepath):
         if os.path.exists(filepath):
@@ -151,16 +156,16 @@ class ImportPMO(Operator, ImportHelper):
             return None
     
     def findTexture(self,tindex):
-        print(tindex)
-        print("Starting Texture Load")
+        #print(tindex)
+        #print("Starting Texture Load")
         if str(self.texturePath) != "":
-            print(self.texturePath)
+            #print(self.texturePath)
             for p in Path(self.texturePath).glob("*%03d*.png"%tindex):
                 tex = self.fetchTexture(str(p))
                 if tex is not None:
                     return tex
         else:
-            print(self.properties.filepath)
+            #print(self.properties.filepath)
             for p in Path(self.properties.filepath).parent.rglob("*%03d*.png"%tindex):                
                 tex = self.fetchTexture(str(p))
                 if tex is not None:
@@ -170,10 +175,12 @@ class ImportPMO(Operator, ImportHelper):
     def createTexMaterials(self,pmo):
         mapping = {}
         texturemap = {}
+        textureIDs = {}
         for mat in pmo.materialData:            
-            if mat.textureID in mapping:
+            if mat.index in mapping:
                 continue
-            tindex = len(mapping)
+            tindex = textureIDs[mat.textureID] if mat.textureID in textureIDs else len(textureIDs)
+            textureIDs[mat.textureID] = tindex
             if tindex in texturemap:
                 texture = texturemap[tindex]
             else:
@@ -182,9 +189,11 @@ class ImportPMO(Operator, ImportHelper):
                 else:
                     texture = None
                 texturemap[tindex] = texture
-            matname = "PMO_Material_%03d"%(mat.textureID)            
+            matname = "PMO_Material_%03d"%(mat.index)            
             material = materialSetup(matname,texture)
-            mapping[mat.textureID] = material            
+            for f in ["rgba","rgba2","unkn"]:
+                material[f] = mat[f]
+            mapping[mat.index] = material
         return mapping
     
     def parseVerts(self,mesh,scale,uvScale):
@@ -252,7 +261,8 @@ class ImportPMO(Operator, ImportHelper):
         obj = bpy.data.objects.new('PMO_Mesh',mesh)        
         bpy.context.scene.objects.link(obj)
         if weights:
-            self.setWeights(obj,weights)        
+            self.setWeights(obj,weights)     
+        return obj
         #print("Mesh End")
         #object_data_add(context, mesh, operator=self)     
    

@@ -5,7 +5,12 @@ Created on Fri Jan 15 01:07:35 2021
 @author: AsteriskAmpersand
 """
 import array
-import construct as C
+
+try:
+    from .. import construct_plugin as C
+except:
+    import construct as C
+    
 import struct
 try:
     from pmo_vertex_buffer import (VPosition, 

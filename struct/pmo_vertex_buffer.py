@@ -5,8 +5,10 @@ Created on Fri Jan 15 18:16:01 2021
 @author: AsteriskAmpersand
 """
 
-import construct as C
-
+try:
+    from .. import construct_plugin as C
+except:
+    import construct as C
 
 Position = lambda x,y,: C.Struct(
                     "raw_x" / x,

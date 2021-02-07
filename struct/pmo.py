@@ -9,9 +9,11 @@ try:
     from .pmo_parse import run_ge
     from .. import construct_plugin as C
 except:
-    from pmo_parse import run_ge
-    import construct as C
+    #from pmo_parse import run_ge
+    #import construct as C
     #from pmo_parse_orig import run_ge
+    pass
+
 alignment = C.Struct(
         "pos" / C.Tell,
         "padding" / C.Padding((-C.this.pos)%16)

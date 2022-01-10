@@ -185,7 +185,7 @@ class ImportPMO(Operator, ImportHelper):
                 texture = texturemap[tindex]
             else:
                 if self.loadTexture:
-                    texture = self.findTexture(tindex)
+                    texture = self.findTexture(mat.textureID)
                 else:
                     texture = None
                 texturemap[tindex] = texture

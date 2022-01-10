@@ -9,7 +9,7 @@ import array
 try:
     from .. import construct_plugin as C
 except:
-    #import construct as C
+    import construct as C
     pass
     
 import struct

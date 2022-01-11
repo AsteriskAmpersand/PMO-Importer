@@ -91,7 +91,7 @@ class weightParser():
         
         bufferSize = max([w.index for w in weightList])+1 if weightList else 0
         self.boneIds = [-1]*bufferSize
-        self.weightIter = iter(weightList)        
+        self.weightIter = iter(weightList)
     def consume(self,count):
         for _ in range(count):
             w = next(self.weightIter)            

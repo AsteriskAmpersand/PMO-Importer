@@ -20,16 +20,24 @@ import bpy
 
 from .operators.importer import menu_func_import as pmo_model_menu_func_import
 from .operators.importer import ImportPMO
+from .operators.ahi_import import ImportFUAHI
+from .operators.ahi_import import menu_func_import as ahi_skeleton_menu_func_import
+from .operators.ahi_converter import ConvertAHI
+
+classes = [ImportPMO,ImportFUAHI,ConvertAHI]
 
 def register():
-    bpy.utils.register_class(ImportPMO)
+    for cl in classes:
+        bpy.utils.register_class(cl)
     bpy.types.INFO_MT_file_import.append(pmo_model_menu_func_import)
+    bpy.types.INFO_MT_file_import.append(ahi_skeleton_menu_func_import)
 
 def unregister():
-    bpy.utils.unregister_class(ImportPMO)
+    for cl in classes:
+        bpy.utils.register_class(cl)
     bpy.types.INFO_MT_file_import.remove(pmo_model_menu_func_import)
+    bpy.types.INFO_MT_file_import.append(ahi_skeleton_menu_func_import)
     
-    del bpy.types.Object.MHW_Symmetric_Pair
 
 if __name__ == "__main__":
     try:

@@ -112,8 +112,8 @@ MESH CODE
 """
 
 class ImportPMO(Operator, ImportHelper):
-    bl_idname = "custom_import.import_mh_pmo"
-    bl_label = "Load MH PMO file (.pmo)"
+    bl_idname = "custom_import.import_mhfu_pmo"
+    bl_label = "Load MHFU PMO file (.pmo)"
     bl_options = {'REGISTER', 'PRESET', 'UNDO'}
  
     # ImportHelper mixin class uses this
@@ -320,4 +320,4 @@ class ImportPMO(Operator, ImportHelper):
                         s.clip_end = clippingDistance*10
     
 def menu_func_import(self, context):
-    self.layout.operator(ImportPMO.bl_idname, text="MH PMO (.pmo)")
+    self.layout.operator(ImportPMO.bl_idname, text="MHFU PMO (.pmo)")

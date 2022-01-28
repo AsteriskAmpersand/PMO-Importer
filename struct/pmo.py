@@ -125,6 +125,18 @@ def load_pmo(pmopath):
             meshes.append((verts,faces,materials,pmo.header.scale,mesh.uvScale))
     return meshes,pmo
 
+def load_cmo(cmopath):
+    meshes = []
+    verts = []
+    faces = []
+    with open(cmopath,"rb") as inf:
+        cmoflag = inf.read(1)
+        v,f = run_ge(inf,[0 for i in range(8)])
+        faces += [tuple(map(lambda x: x + len(verts),face)) for face in f]
+        verts += v
+        meshes.append((verts,faces,[],[1,1,1],[1,1]))
+    return meshes,cmoflag
+
 if __name__ in "__main__":
     from pathlib import Path
     for file in Path(r"D:\Downloads\em37\models\models").rglob("*.pmo"):

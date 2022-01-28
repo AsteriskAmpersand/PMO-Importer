@@ -19,7 +19,7 @@ bl_info = {
 import bpy
 
 from .operators.importer import menu_func_import as pmo_model_menu_func_import
-from .operators.importer import ImportPMO
+from .operators.importer import ImportPMO,ImportCMO
 from .operators.ahi_import import ImportFUAHI
 from .operators.ahi_import import menu_func_import as ahi_skeleton_menu_func_import
 from .operators.ahi_converter import ConvertAHI

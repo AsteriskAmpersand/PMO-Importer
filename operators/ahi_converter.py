@@ -41,12 +41,12 @@ def createArmature(rootBone):#Skeleton
     bpy.ops.object.select_all(action='DESELECT')
     blenderArmature = bpy.data.armatures.new('Armature')
     arm_ob = bpy.data.objects.new('Armature', blenderArmature)
-    bpy.context.scene.objects.link(arm_ob)
-    bpy.context.scene.update()
-    arm_ob.select = True
-    arm_ob.show_x_ray = True
-    bpy.context.scene.objects.active = arm_ob
-    blenderArmature.draw_type = 'STICK'
+    bpy.context.scene.collection.objects.link(arm_ob)
+    bpy.context.view_layer.update()
+    arm_ob.select_set(True)
+    arm_ob.show_in_front = True
+    bpy.context.view_layer.objects.active = arm_ob
+    arm_ob.data.display_type = 'STICK'
     bpy.ops.object.mode_set(mode='EDIT')    
     empty = createParentBone(blenderArmature)
     
@@ -54,7 +54,7 @@ def createArmature(rootBone):#Skeleton
     root.parent = empty
         #arm.pose.bones[ix].matrix        
     bpy.ops.object.editmode_toggle()
-    for obj in bpy.context.scene.objects:
+    for obj in bpy.context.scene.collection.objects:
         if obj.type == "MESH":
             m = obj.modifiers.new("Armature","ARMATURE")
             m.object = arm_ob
@@ -66,6 +66,6 @@ class ConvertAHI(Operator):
     bl_options = {'REGISTER', 'PRESET', 'UNDO'}
     
     def execute(self,context):
-        roots = [ o for o in bpy.context.scene.objects if o.type == "EMPTY" and o.parent is None ]
+        roots = [ o for o in bpy.context.scene.collection.objects if o.type == "EMPTY" and o.parent is None ]
         for root in roots: createArmature(root)
         return {'FINISHED'}

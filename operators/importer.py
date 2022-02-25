@@ -61,9 +61,9 @@ def setLocation(node,location):
 def createTexNode(nodeTree,color,texture,name):
     baseType = "ShaderNodeTexImage"
     node = nodeTree.nodes.new(type=baseType)
-    node.color_space = color
     if texture is not None:
         node.image = texture
+    node.image.colorspace_settings.name = color
     node.name = name
     return node
 
@@ -86,7 +86,7 @@ def materialSetup(matName,texture):
     bsdfNode.name = "Principled BSDF"
     endNode = bsdfNode    
     
-    diffuseNode = createTexNode(nodeTree,"COLOR",texture,"Diffuse Texture")
+    diffuseNode = createTexNode(nodeTree,"sRGB",texture,"Diffuse Texture")
     setLocation(diffuseNode,(0,0))
 
     transparentNode = nodeTree.nodes.new(type="ShaderNodeBsdfTransparent")
@@ -118,13 +118,13 @@ class ImportPMO(Operator, ImportHelper):
  
     # ImportHelper mixin class uses this
     filename_ext = ".pmo"
-    filter_glob = StringProperty(default="*.pmo", options={'HIDDEN'}, maxlen=255)
+    filter_glob: StringProperty(default="*.pmo", options={'HIDDEN'}, maxlen=255)
 
-    loadTexture = BoolProperty(
+    loadTexture: BoolProperty(
         name = "Import Textures",
         description = "Attempts to import textures.",
         default = True)
-    texturePath = StringProperty(
+    texturePath: StringProperty(
         name = "Texture Folder",
         description = "Folder were suspect textures are, leave empty to do Pray to God Search.",
         default = ""
@@ -260,7 +260,7 @@ class ImportPMO(Operator, ImportHelper):
         #mesh.validate(verbose=True)        
         mesh.update()
         obj = bpy.data.objects.new('PMO_Mesh',mesh)        
-        bpy.context.scene.objects.link(obj)
+        bpy.context.scene.collection.objects.link(obj)
         if weights:
             self.setWeights(obj,weights)     
         return obj
@@ -279,7 +279,7 @@ class ImportPMO(Operator, ImportHelper):
         meshpart.normals_split_custom_set_from_vertices([normalize(v) for v in normals])#normalize
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
         meshpart.use_auto_smooth = True
-        meshpart.show_edge_sharp = True
+        #meshpart.show_edge_sharp = True
               
     def setColor(self,mesphart,color):
         vcol_layer = mesphart.vertex_colors.new()
@@ -289,8 +289,8 @@ class ImportPMO(Operator, ImportHelper):
    #UVs
     def setUVs(self, blenderMesh, uv):#texFaces):
         name = "UV_Layer"
-        texture = blenderMesh.uv_textures.new(name)
-        name = texture.name
+        layer = blenderMesh.uv_layers.new(name=name)
+        name = layer.name
         blenderMesh.update()
         blenderBMesh = bmesh.new()
         blenderBMesh.from_mesh(blenderMesh)
@@ -310,7 +310,7 @@ class ImportPMO(Operator, ImportHelper):
                 if wt != 0:
                     groupName = "Bone.%03d"%bid
                     if groupName not in blenderObj.vertex_groups:
-                        blenderObj.vertex_groups.new(groupName)
+                        blenderObj.vertex_groups.new(name=groupName)
                     blenderObj.vertex_groups[groupName].add([ix],wt,'ADD')
                 
     def setClip(self,clippingDistance):
@@ -327,7 +327,7 @@ class ImportCMO(ImportPMO, Operator, ImportHelper):
  
     # ImportHelper mixin class uses this
     filename_ext = ".cmo"
-    filter_glob = StringProperty(default="*.cmo", options={'HIDDEN'}, maxlen=255)
+    filter_glob: StringProperty(default="*.cmo", options={'HIDDEN'}, maxlen=255)
 
     def execute(self,context):
         try:

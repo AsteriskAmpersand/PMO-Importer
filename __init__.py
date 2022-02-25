@@ -13,7 +13,8 @@ bl_info = {
     "category": "Import-Export",
     "author": "AsteriskAmpersand (Code) & Seth VanHeulen (Vertex and Face Buffer Structure)",
     "location": "File > Import-Export > PMO/MH",
-    "version": (1,0,0)
+    "version": (1,0,0),
+    "blender": (2, 80, 0),
 }
  
 import bpy
@@ -29,14 +30,14 @@ classes = [ImportPMO,ImportFUAHI,ConvertAHI]
 def register():
     for cl in classes:
         bpy.utils.register_class(cl)
-    bpy.types.INFO_MT_file_import.append(pmo_model_menu_func_import)
-    bpy.types.INFO_MT_file_import.append(ahi_skeleton_menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.append(pmo_model_menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.append(ahi_skeleton_menu_func_import)
 
 def unregister():
     for cl in classes:
-        bpy.utils.register_class(cl)
-    bpy.types.INFO_MT_file_import.remove(pmo_model_menu_func_import)
-    bpy.types.INFO_MT_file_import.append(ahi_skeleton_menu_func_import)
+        bpy.utils.unregister_class(cl)
+    bpy.types.TOPBAR_MT_file_import.remove(pmo_model_menu_func_import)
+    bpy.types.TOPBAR_MT_file_import.remove(ahi_skeleton_menu_func_import)
     
 
 if __name__ == "__main__":

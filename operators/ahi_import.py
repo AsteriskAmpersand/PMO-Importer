@@ -18,8 +18,8 @@ class ImportFUAHI(Operator, ImportHelper):
  
     # ImportHelper mixin class uses this
     filename_ext = ".fskl"
-    filter_glob = StringProperty(default="*.ahi", options={'HIDDEN'}, maxlen=255)
-    import_armature = BoolProperty(name = "Import as Armature", default = False)
+    filter_glob: StringProperty(default="*.ahi", options={'HIDDEN'}, maxlen=255)
+    import_armature: BoolProperty(name = "Import as Armature", default = False)
     
     def execute(self,context):
         try:

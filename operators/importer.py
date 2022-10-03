@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-# -*- coding: utf-8 -*-
 """
 Created on Wed Mar  6 14:09:29 2019
 
@@ -15,7 +13,7 @@ from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
-from ..struct.pmo import load_pmo
+from ..struct.pmo import load_pmo, load_cmo
 
 """
 ============================================
@@ -109,11 +107,11 @@ def materialSetup(matName,texture):
 MESH CODE
 ============================================
 ============================================
-"""
+"""   
 
 class ImportPMO(Operator, ImportHelper):
-    bl_idname = "custom_import.import_mh_pmo"
-    bl_label = "Load MH PMO file (.pmo)"
+    bl_idname = "custom_import.import_mhfu_pmo"
+    bl_label = "Load MHFU PMO file (.pmo)"
     bl_options = {'REGISTER', 'PRESET', 'UNDO'}
 
     # ImportHelper mixin class uses this
@@ -193,7 +191,7 @@ class ImportPMO(Operator, ImportHelper):
                 texture = texturemap[tindex]
             else:
                 if self.loadTexture:
-                    texture = self.findTexture(tindex)
+                    texture = self.findTexture(mat.textureID)
                 else:
                     texture = None
                 texturemap[tindex] = texture
@@ -267,7 +265,8 @@ class ImportPMO(Operator, ImportHelper):
             self.setUVs(mesh,uvs)
         if color:
             self.setColor(mesh,color)
-        self.setMaterials(mesh,mat,materials)
+        if materials:
+            self.setMaterials(mesh,mat,materials)
         #if weights:
         #    self.setWeights(mesh,weights)
         #mesh.validate(verbose=True)
@@ -346,6 +345,26 @@ class ImportPMO(Operator, ImportHelper):
                 for s in a.spaces:
                     if s.type == 'VIEW_3D':
                         s.clip_end = clippingDistance*10
+    
+class ImportCMO(ImportPMO, Operator, ImportHelper):
+    bl_idname = "custom_import.import_mhfu_cmo"
+    bl_label = "Load MHFU CMO file (.cmo)"
+    bl_options = {'REGISTER', 'PRESET', 'UNDO'}
+ 
+    # ImportHelper mixin class uses this
+    filename_ext = ".cmo"
+    filter_glob = StringProperty(default="*.cmo", options={'HIDDEN'}, maxlen=255)
+
+    def execute(self,context):
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except:
+            pass        
+        meshes,pmo = load_cmo(self.properties.filepath)
+        for mesh in meshes:
+            self.loadMesh([],*mesh)
+        return {'FINISHED'}
 
 def menu_func_import(self, context):
-    self.layout.operator(ImportPMO.bl_idname, text="MH PMO (.pmo)")
+    self.layout.operator(ImportPMO.bl_idname, text="MHFU PMO (.pmo)")
+    self.layout.operator(ImportCMO.bl_idname, text="MHFU CMO (.cmo)")

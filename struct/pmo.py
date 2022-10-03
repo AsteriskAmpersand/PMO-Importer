@@ -91,7 +91,7 @@ class weightParser():
         
         bufferSize = max([w.index for w in weightList])+1 if weightList else 0
         self.boneIds = [-1]*bufferSize
-        self.weightIter = iter(weightList)        
+        self.weightIter = iter(weightList)
     def consume(self,count):
         for _ in range(count):
             w = next(self.weightIter)            
@@ -124,6 +124,18 @@ def load_pmo(pmopath):
                 materials += [mat.index for face in f]
             meshes.append((verts,faces,materials,pmo.header.scale,mesh.uvScale))
     return meshes,pmo
+
+def load_cmo(cmopath):
+    meshes = []
+    verts = []
+    faces = []
+    with open(cmopath,"rb") as inf:
+        cmoflag = inf.read(1)
+        v,f = run_ge(inf,[0 for i in range(8)])
+        faces += [tuple(map(lambda x: x + len(verts),face)) for face in f]
+        verts += v
+        meshes.append((verts,faces,[],[1,1,1],[1,1]))
+    return meshes,cmoflag
 
 if __name__ in "__main__":
     from pathlib import Path

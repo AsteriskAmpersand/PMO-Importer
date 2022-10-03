@@ -11,21 +11,21 @@ try:
 except:
     import construct as C
     pass
-    
+
 import struct
 try:
-    from pmo_vertex_buffer import (VPosition, 
-                                   VNormal, 
-                                   VWeight,  
+    from pmo_vertex_buffer import (VPosition,
+                                   VNormal,
+                                   VWeight,
                                    VRGB,
-                                   VUV,  
+                                   VUV,
                                    VIndex,)
 except:
-    from .pmo_vertex_buffer import (VPosition, 
-                                   VNormal, 
-                                   VWeight,  
+    from .pmo_vertex_buffer import (VPosition,
+                                   VNormal,
+                                   VWeight,
                                    VRGB,
-                                   VUV,  
+                                   VUV,
                                    VIndex,)
 
 def bitarray(op,startStops):
@@ -35,17 +35,17 @@ def bitarray(op,startStops):
     return results
 
 vertexTypeMap = {
-    "uvClass" : (0,2),        
+    "uvClass" : (0,2),
     "colorClass" : (2,4),
     "colorUse" : (4,5),
     "normalClass" : (5,7),
     "positionClass" : (7,9),
     "weightClass" : (9,11),
-    "indexClass" : (11,13),    
-    "padding1" : (13,14),    
+    "indexClass" : (11,13),
+    "padding1" : (13,14),
     "weightCount" : (14,18),
-    "morphClass" : (18,21),    
-    "padding2" : (21,23),    
+    "morphClass" : (18,21),
+    "padding2" : (21,23),
     "bypass" : (23,24),
     "operator" : (24,32),
     }
@@ -66,7 +66,7 @@ def vertexType(command):
     #print(result)
     if result["morphClass"]: raise ValueError("Morph Class not implemented")
     VertexBuffer = C.Struct(
-                            "weight" / VWeight(result["weightClass"])[result["weightCount"]+1],   
+                            "weight" / VWeight(result["weightClass"])[result["weightCount"]+1],
                             "padding" / C.Int8ul[weightSpan(result["weightCount"]+1,result["weightClass"])],
                             "uv" / VUV(result["uvClass"],result["bypass"]),
                             "colour" / VRGB(result["colorUse"],result["colorClass"]),
@@ -82,7 +82,7 @@ primitiveTypeMap = {
     "unknown" : (19,24),
     "operator" : (24,32),
     }
-  
+
 
 def parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info):
     faces = []
@@ -91,23 +91,26 @@ def parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info):
         count = indexData["indexCount"]
         primitive_type = indexData["primitiveType"]
         index = [ix.index for ix in C.Struct("index" / index_buffer[count]).parse_stream(pmo).index]
-        #if face_order: index = list(reversed(index))          
+        #if face_order: index = list(reversed(index))
         r = range(count - 2)
         if primitive_type == 3:
             r = range(0, count, 3)
         elif primitive_type != 4:
-            ValueError('Unsupported primative type: 0x{:02X}'.format(primitive_type))            
+            ValueError('Unsupported primative type: 0x{:02X}'.format(primitive_type))
         signum = 0 + face_order
         for i in r:
+            #print(len(faces))
             face = (index[i+signum],index[i+1-signum], index[i+2])
-            signum = (signum + 1)%2     
+            signum = (signum + 1)%2
             faces.append(face)
+            #print(face)
+        #print()
     return faces
 
 def parseVertices(pmo, vertex_address,vertexBuffer,index,weights,info):
     vertices = []
     pmo.seek(vertex_address)
-    for i in range(index):        
+    for i in range(index):
         vertex = vertexBuffer.parse_stream(pmo)
         vertex["weightData"] = list(zip(weights,vertex.weight))
         vertices.append(vertex)
@@ -131,7 +134,7 @@ def run_ge(pmo,weights,debug = None):
         # IADDR - Index Address (BASE)
         elif command_type == 0x02:
             info("IADDR")
-            index_address = base + (command & 0xffffff)        
+            index_address = base + (command & 0xffffff)
         # VADDR - Vertex Address (BASE)
         elif command_type == 0x01:
             info("VADDR")

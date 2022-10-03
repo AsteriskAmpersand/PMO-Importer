@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-# -*- coding: utf-8 -*-
 """
 Created on Wed Mar  6 14:09:29 2019
 
@@ -78,14 +76,14 @@ def materialSetup(matName,texture):
     nodes = mat.node_tree.nodes
     for node in nodes:
         nodes.remove(node)
-        
+
     nodeTree = mat.node_tree
 
     bsdfNode = nodeTree.nodes.new(type="ShaderNodeBsdfPrincipled")
     setLocation(bsdfNode,(6,0))
     bsdfNode.name = "Principled BSDF"
-    endNode = bsdfNode    
-    
+    endNode = bsdfNode
+
     diffuseNode = createTexNode(nodeTree,"COLOR",texture,"Diffuse Texture")
     setLocation(diffuseNode,(0,0))
 
@@ -96,11 +94,11 @@ def materialSetup(matName,texture):
     nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
     nodeTree.links.new(diffuseNode.outputs[1],alphaMixerNode.inputs[0])
     nodeTree.links.new(transparentNode.outputs[0],alphaMixerNode.inputs[1])
-    
+
     nodeTree.links.new(endNode.outputs[0],alphaMixerNode.inputs[2])
     outputNode = nodeTree.nodes.new(type="ShaderNodeOutputMaterial")
     nodeTree.links.new(endNode.outputs[0],outputNode.inputs[0])
-    
+
     return mat
 
 """
@@ -115,7 +113,7 @@ class ImportPMO(Operator, ImportHelper):
     bl_idname = "custom_import.import_mhfu_pmo"
     bl_label = "Load MHFU PMO file (.pmo)"
     bl_options = {'REGISTER', 'PRESET', 'UNDO'}
- 
+
     # ImportHelper mixin class uses this
     filename_ext = ".pmo"
     filter_glob = StringProperty(default="*.pmo", options={'HIDDEN'}, maxlen=255)
@@ -124,19 +122,27 @@ class ImportPMO(Operator, ImportHelper):
         name = "Import Textures",
         description = "Attempts to import textures.",
         default = True)
+    flipUV = BoolProperty(
+        name = "Flip UV Map",
+        description = "Flips UV Map Vertically.",
+        default = False)
+    enforceNormals = BoolProperty(
+        name = "Enforce Normals",
+        description = "Forces Face Normals to Follow Edge Normals.",
+        default = False)
     texturePath = StringProperty(
         name = "Texture Folder",
         description = "Folder were suspect textures are, leave empty to do Pray to God Search.",
         default = ""
         )
-    
+
 
     def execute(self,context):
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
         except:
             pass
-        
+
         meshes,pmo = load_pmo(self.properties.filepath)
         materials = self.createTexMaterials(pmo)
         self.setClip(pmo.header.clippingDistance)
@@ -144,17 +150,17 @@ class ImportPMO(Operator, ImportHelper):
             obj = self.loadMesh(materials,*mesh)
             self.writeMetadata(obj,metadata)
         return {'FINISHED'}
-    
+
     def writeMetadata(self,obj,data):
         for ix,var in enumerate(data.unkn1):
             obj.data["unkn01-%02d"%ix] = var
-    
+
     def fetchTexture(self,filepath):
         if os.path.exists(filepath):
             return bpy.data.images.load(filepath)
         else:
             return None
-    
+
     def findTexture(self,tindex):
         #print(tindex)
         #print("Starting Texture Load")
@@ -166,17 +172,17 @@ class ImportPMO(Operator, ImportHelper):
                     return tex
         else:
             #print(self.properties.filepath)
-            for p in Path(self.properties.filepath).parent.rglob("*%03d*.png"%tindex):                
+            for p in Path(self.properties.filepath).parent.rglob("*%03d*.png"%tindex):
                 tex = self.fetchTexture(str(p))
                 if tex is not None:
                     return tex
         return None
-    
+
     def createTexMaterials(self,pmo):
         mapping = {}
         texturemap = {}
         textureIDs = {}
-        for mat in pmo.materialData:            
+        for mat in pmo.materialData:
             if mat.index in mapping:
                 continue
             tindex = textureIDs[mat.textureID] if mat.textureID in textureIDs else len(textureIDs)
@@ -189,13 +195,13 @@ class ImportPMO(Operator, ImportHelper):
                 else:
                     texture = None
                 texturemap[tindex] = texture
-            matname = "PMO_Material_%03d"%(mat.index)            
+            matname = "PMO_Material_%03d"%(mat.index)
             material = materialSetup(matname,texture)
             for f in ["rgba","rgba2","unkn"]:
                 material[f] = mat[f]
             mapping[mat.index] = material
         return mapping
-    
+
     def parseVerts(self,mesh,scale,uvScale):
         #print("Verts Parsed")
         #print(len(mesh))
@@ -210,24 +216,27 @@ class ImportPMO(Operator, ImportHelper):
             if v.normal:
                 nors.append((v.normal.x,v.normal.y,v.normal.z))
             if v.uv:
-                uv.append((v.uv.u*uvScale[0],v.uv.v*uvScale[1]))
+                if self.flipUV:
+                    uv.append((v.uv.u*uvScale[0],1 - v.uv.v*uvScale[1]))
+                else:
+                    uv.append((v.uv.u*uvScale[0],v.uv.v*uvScale[1]))
             if v.colour:
                 col.append((v.colour.r,v.colour.g,v.colour.b,v.colour.a))
             if any(map(lambda x: x is not None, v.weight)):
                 wts.append([(bid,w.weight) for bid,w in v["weightData"]])
         return verts,nors,uv,col,wts
-    
+
     def parseFaces(self,faces):
         #print(faces)
         #raise
         return faces
         #print("Face Parsed")
         #return [f for f,m in faces],[m for f,m in faces]
-    
+
     def setMaterials(self,mesh,faceMats,masterMats):
         for material in masterMats:
             mesh.materials.append(masterMats[material])
-        
+
         blenderBMesh = bmesh.new()
         blenderBMesh.from_mesh(mesh)
         blenderBMesh.faces.ensure_lookup_table()
@@ -235,7 +244,7 @@ class ImportPMO(Operator, ImportHelper):
             face.material_index = mat
         blenderBMesh.to_mesh(mesh)
         mesh.update()
-    
+
     def loadMesh(self,materials,meshdata,faces,mat,scale,uvScale):
         #print("Mesh Started")
         mesh = bpy.data.meshes.new(name="PMO_Mesh")
@@ -249,6 +258,9 @@ class ImportPMO(Operator, ImportHelper):
         #print("Mesh Created")
         if normals:
             self.setNormals(mesh,normals)
+        if self.enforceNormals and normals:
+            self.setFaceNormals(mesh,normals)
+            self.setNormals(mesh,normals)
         if uvs:
             self.setUVs(mesh,uvs)
         if color:
@@ -256,31 +268,45 @@ class ImportPMO(Operator, ImportHelper):
         if materials:
             self.setMaterials(mesh,mat,materials)
         #if weights:
-        #    self.setWeights(mesh,weights)        
-        #mesh.validate(verbose=True)        
+        #    self.setWeights(mesh,weights)
+        #mesh.validate(verbose=True)
         mesh.update()
-        obj = bpy.data.objects.new('PMO_Mesh',mesh)        
+        obj = bpy.data.objects.new('PMO_Mesh',mesh)
         bpy.context.scene.objects.link(obj)
         if weights:
-            self.setWeights(obj,weights)     
+            self.setWeights(obj,weights)
         return obj
         #print("Mesh End")
-        #object_data_add(context, mesh, operator=self)     
-   
+        #object_data_add(context, mesh, operator=self)
+
     def setNormals(self,meshpart,normals):
         meshpart.update(calc_edges=True)
         #meshpart.normals_split_custom_set_from_vertices(normals)
-        
+
         clnors = array.array('f', [0.0] * (len(meshpart.loops) * 3))
         meshpart.loops.foreach_get("normal", clnors)
         meshpart.polygons.foreach_set("use_smooth", [True] * len(meshpart.polygons))
-        
+
         #meshpart.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
         meshpart.normals_split_custom_set_from_vertices([normalize(v) for v in normals])#normalize
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
         meshpart.use_auto_smooth = True
         meshpart.show_edge_sharp = True
-              
+
+    def setFaceNormals(self,blenderMesh,normals):
+        bpy.context.scene.update()
+        blenderBMesh = bmesh.new()
+        blenderBMesh.from_mesh(blenderMesh)
+        blenderBMesh.faces.ensure_lookup_table()
+        for face in blenderBMesh.faces:
+            faceNormals = [normalize(normals[v.vert.index]) for v in face.loops]
+            netNormal = (sum(faceNormals,Vector([0,0,0]))/len(face.loops)).normalized()
+            if netNormal.dot(face.normal) < 0:
+                face.normal_flip()
+        blenderBMesh.to_mesh(blenderMesh)
+        blenderMesh.update()
+
+
     def setColor(self,mesphart,color):
         vcol_layer = mesphart.vertex_colors.new()
         for l,col in zip(mesphart.loops, vcol_layer.data):
@@ -303,7 +329,7 @@ class ImportPMO(Operator, ImportHelper):
         blenderBMesh.to_mesh(blenderMesh)
         blenderMesh.update()
         return
-        
+
     def setWeights(self, blenderObj, wts):
         for ix,wtgroup in enumerate(wts):
             for bid,wt in wtgroup:
@@ -312,7 +338,7 @@ class ImportPMO(Operator, ImportHelper):
                     if groupName not in blenderObj.vertex_groups:
                         blenderObj.vertex_groups.new(groupName)
                     blenderObj.vertex_groups[groupName].add([ix],wt,'ADD')
-                
+
     def setClip(self,clippingDistance):
         for a in bpy.context.screen.areas:
             if a.type == 'VIEW_3D':

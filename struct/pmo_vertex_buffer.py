@@ -8,7 +8,7 @@ Created on Fri Jan 15 18:16:01 2021
 try:
     from .. import construct_plugin as C
 except:
-    #import construct as C
+    import construct as C
     pass
 
 Position = lambda x,y,: C.Struct(

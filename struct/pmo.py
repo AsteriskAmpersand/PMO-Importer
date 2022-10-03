@@ -9,8 +9,8 @@ try:
     from .pmo_parse import run_ge
     from .. import construct_plugin as C
 except:
-    #from pmo_parse import run_ge
-    #import construct as C
+    from pmo_parse import run_ge
+    import construct as C
     #from pmo_parse_orig import run_ge
     pass
 
@@ -128,5 +128,11 @@ def load_pmo(pmopath):
 if __name__ in "__main__":
     from pathlib import Path
     for file in Path(r"D:\Downloads\em37\models\models").rglob("*.pmo"):
-        print(file)
-        load_pmo(file)
+        #print(file)
+        meshes,pmo = load_pmo(file)
+        an = False
+        for ix,mat in enumerate(pmo.materialData):
+            if tuple(mat.unkn) != (0,0,0,0):
+                if not an: print(file.replace(r"D:\Downloads\em37\models"+"\\",""))
+                print("%d:%s"%(ix,tuple(mat.unkn)))
+                an = True

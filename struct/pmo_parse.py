@@ -122,6 +122,7 @@ def run_ge(pmo,weights,debug = None):
         return
         print("        %s: %d - %X"%(op,pmo.tell()-4-base,pmo.tell()-4))
     index_counts = []
+    backface_culling = False
     while True:
         command = array.array('I', pmo.read(4))[0]
         command_type = command >> 24
@@ -153,6 +154,10 @@ def run_ge(pmo,weights,debug = None):
         elif command_type == 0x04:
             info("PRIM")
             index_counts.append(bitarray(command,primitiveTypeMap))
+        # BCE - Backface Culling Enable
+        elif command_type == 0x1d:
+            info("BCE")
+            backface_culling = command & 1
         # RET - Return from Call
         elif command_type == 0x0b:
             info("RET")

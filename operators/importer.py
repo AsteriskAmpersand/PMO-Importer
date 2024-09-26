@@ -59,7 +59,7 @@ def setLocation(node,location):
 def createTexNode(nodeTree,color,texture,name):
     baseType = "ShaderNodeTexImage"
     node = nodeTree.nodes.new(type=baseType)
-    node.color_space = color
+    #node.color_space = color
     if texture is not None:
         node.image = texture
     node.name = name
@@ -118,19 +118,19 @@ class ImportPMO(Operator, ImportHelper):
     filename_ext = ".pmo"
     filter_glob = StringProperty(default="*.pmo", options={'HIDDEN'}, maxlen=255)
 
-    loadTexture = BoolProperty(
+    loadTexture : BoolProperty(
         name = "Import Textures",
         description = "Attempts to import textures.",
         default = True)
-    flipUV = BoolProperty(
+    flipUV : BoolProperty(
         name = "Flip UV Map",
         description = "Flips UV Map Vertically.",
         default = False)
-    enforceNormals = BoolProperty(
+    enforceNormals : BoolProperty(
         name = "Enforce Normals",
         description = "Forces Face Normals to Follow Edge Normals.",
         default = False)
-    texturePath = StringProperty(
+    texturePath : StringProperty(
         name = "Texture Folder",
         description = "Folder were suspect textures are, leave empty to do Pray to God Search.",
         default = ""
@@ -272,7 +272,7 @@ class ImportPMO(Operator, ImportHelper):
         #mesh.validate(verbose=True)
         mesh.update()
         obj = bpy.data.objects.new('PMO_Mesh',mesh)
-        bpy.context.scene.objects.link(obj)
+        bpy.context.collection.objects.link(obj)
         if weights:
             self.setWeights(obj,weights)
         return obj
@@ -291,10 +291,10 @@ class ImportPMO(Operator, ImportHelper):
         meshpart.normals_split_custom_set_from_vertices([normalize(v) for v in normals])#normalize
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
         meshpart.use_auto_smooth = True
-        meshpart.show_edge_sharp = True
+        #bpy.context.space_data.overlay.show_edge_sharp  = True
 
     def setFaceNormals(self,blenderMesh,normals):
-        bpy.context.scene.update()
+        bpy.context.view_layer.update()
         blenderBMesh = bmesh.new()
         blenderBMesh.from_mesh(blenderMesh)
         blenderBMesh.faces.ensure_lookup_table()
@@ -315,7 +315,7 @@ class ImportPMO(Operator, ImportHelper):
    #UVs
     def setUVs(self, blenderMesh, uv):#texFaces):
         name = "UV_Layer"
-        texture = blenderMesh.uv_textures.new(name)
+        texture = blenderMesh.uv_layers.new(name=name)
         name = texture.name
         blenderMesh.update()
         blenderBMesh = bmesh.new()
@@ -336,7 +336,7 @@ class ImportPMO(Operator, ImportHelper):
                 if wt != 0:
                     groupName = "Bone.%03d"%bid
                     if groupName not in blenderObj.vertex_groups:
-                        blenderObj.vertex_groups.new(groupName)
+                        blenderObj.vertex_groups.new(name=groupName)
                     blenderObj.vertex_groups[groupName].add([ix],wt,'ADD')
 
     def setClip(self,clippingDistance):
@@ -353,7 +353,7 @@ class ImportCMO(ImportPMO, Operator, ImportHelper):
  
     # ImportHelper mixin class uses this
     filename_ext = ".cmo"
-    filter_glob = StringProperty(default="*.cmo", options={'HIDDEN'}, maxlen=255)
+    filter_glob : StringProperty(default="*.cmo", options={'HIDDEN'}, maxlen=255)
 
     def execute(self,context):
         try:

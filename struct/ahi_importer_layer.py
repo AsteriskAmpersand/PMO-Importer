@@ -20,8 +20,8 @@ class AHIImporter():
         skeleton = FUSkeleton(fmodPath).skeletonStructure()
         currentSkeleton = {}
         o = bpy.data.objects.new("Armature", None)
-        bpy.context.scene.objects.link(o)
-        # bpy.context.scene.update()
+        bpy.context.collection.objects.link(o)
+        # bpy.context.view_layer.update()
         currentSkeleton = {"Armature": o}
         for bone in skeleton.values():
             AHIImporter.importBone(bone, currentSkeleton, skeleton)
@@ -41,7 +41,7 @@ class AHIImporter():
             return
         o = bpy.data.objects.new("Bone.%03d" % ix, None)
         skeleton["Bone.%03d" % ix] = o
-        bpy.context.scene.objects.link(o)
+        bpy.context.collection.objects.link(o)
         parentName = "Armature" if bone.parentID == -1 else "Bone.%03d" % bone.parentID
         if parentName not in skeleton:
             AHIImporter.importBone(
@@ -50,5 +50,5 @@ class AHIImporter():
         o.parent = skeleton[parentName]
         o.matrix_local = AHIImporter.deserializePoseVector(bone.posVec)
         o.show_wire = True
-        o.show_x_ray = True
+        o.show_in_front = True
         o.show_bounds = True

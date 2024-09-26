@@ -30,7 +30,7 @@ def createBone(armature, obj, parent_bone = None):
     bone.tail = Vector([0, MACHINE_EPSILON, 0])#Vector([0, 1, 0])
     if not parent_bone:
         parent_bone = DummyBone()#matrix = Identity(4), #boneTail = 0,0,0, boneHead = 0,1,0
-    bone.matrix = parent_bone.matrix * obj.matrix_local
+    bone.matrix = parent_bone.matrix @ obj.matrix_local
     for child in obj.children:
         nbone = createBone(armature, child, bone)
         nbone.parent = bone
@@ -41,12 +41,12 @@ def createArmature(rootBone):#Skeleton
     bpy.ops.object.select_all(action='DESELECT')
     blenderArmature = bpy.data.armatures.new('Armature')
     arm_ob = bpy.data.objects.new('Armature', blenderArmature)
-    bpy.context.scene.objects.link(arm_ob)
-    bpy.context.scene.update()
-    arm_ob.select = True
-    arm_ob.show_x_ray = True
-    bpy.context.scene.objects.active = arm_ob
-    blenderArmature.draw_type = 'STICK'
+    bpy.context.collection.objects.link(arm_ob)
+    bpy.context.view_layer.update()
+    arm_ob.select_set(True)
+    arm_ob.show_in_front = True
+    bpy.context.view_layer.objects.active = arm_ob
+    blenderArmature.display_type = 'STICK'
     bpy.ops.object.mode_set(mode='EDIT')    
     empty = createParentBone(blenderArmature)
     

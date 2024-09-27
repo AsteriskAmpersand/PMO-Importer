@@ -6,10 +6,10 @@ Created on Thu Jan 14 22:39:43 2021
 """
 #import construct as C
 try:
-    from .pmo_parse import run_ge
+    from .pmo_parse import run_ge, ParserState
     from .. import construct_plugin as C
 except:
-    from pmo_parse import run_ge
+    from pmo_parse import run_ge, ParserState
     import construct as C
     #from pmo_parse_orig import run_ge
     pass
@@ -64,7 +64,7 @@ Skeleton = C.Struct(
 MaterialContent = C.Struct(
     "index" / C.Computed(C.this._index),
     "rgba" / C.Int8ul[4],
-    "rgba2" / C.Int8ul[4],
+    "shadow_rgba" / C.Int8ul[4],
     "textureID" / C.Int32sl,
     "unkn" / C.Int8ul[4],
     )
@@ -104,10 +104,12 @@ def load_pmo(pmopath):
     with open(pmopath,"rb") as inf:
         pmo = PMO.parse_stream(inf)
         weightData = weightParser(pmo.skeleton)
+        ps = ParserState()
         for mesh in pmo.meshHeaders:
             verts = []
             faces = []
             materials = []
+            pss = []
             for tristripHeader in mesh.submeshHeaders:
                 weightData.consume(tristripHeader.boneCount)
                 try:
@@ -118,11 +120,12 @@ def load_pmo(pmopath):
                     mat = pmo.materialData[0]
                 inf.seek(pmo.header.meshDataOffset + tristripHeader.meshOffset)
                 #DEBUG = []
-                v,f = run_ge(inf,weightData)
-                faces += [tuple(map(lambda x: x + len(verts),face)) for face in f]
+                v,f = run_ge(inf,weightData,ps)
+                faces += [tuple(map(lambda x: x + len(verts),face)) for face,ps in f]
+                pss += [p2 for face,p2 in f]
                 verts += v
                 materials += [mat.index for face in f]
-            meshes.append((verts,faces,materials,pmo.header.scale,mesh.uvScale))
+            meshes.append((verts,faces,pss,materials,pmo.header.scale,mesh.uvScale))
     return meshes,pmo
 
 def load_cmo(cmopath):
@@ -131,8 +134,9 @@ def load_cmo(cmopath):
     faces = []
     with open(cmopath,"rb") as inf:
         cmoflag = inf.read(1)
-        v,f = run_ge(inf,[0 for i in range(8)])
-        faces += [tuple(map(lambda x: x + len(verts),face)) for face in f]
+        ps = ParserState()
+        v,f = run_ge(inf,[0 for i in range(8)],ps)
+        faces += [tuple(map(lambda x: x + len(verts),face)) for face,ps in f]#parser state discarded
         verts += v
         meshes.append((verts,faces,[],[1,1,1],[1,1]))
     return meshes,cmoflag

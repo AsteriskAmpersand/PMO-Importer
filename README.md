@@ -268,7 +268,7 @@ We now know that for this vertex:
 ```
 struct MaterialContent{
     byte rgba[4];
-    byte rgba2[4];
+    byte shadow_rgba[4];
     int textureIndex;
     byte unkn[4];
 };

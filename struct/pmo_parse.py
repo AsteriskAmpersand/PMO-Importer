@@ -28,6 +28,31 @@ except:
                                    VUV,
                                    VIndex,)
 
+from dataclasses import dataclass, fields
+
+@dataclass
+class _ParserState:
+    """GPU Parser State for primitive properties"""
+    backface_culling : bool
+    alpha_blending : int
+    alpha_test : int
+    lighting_enable : bool
+    clipping_enable : bool
+    texture_enable : bool
+    fog_enable : bool
+    dither_enable : bool
+    alpha_test_enable : bool
+    depth_test_enable : bool
+    antialiasing_enable : bool
+    patch_culling_enable : bool
+    color_test_enable : bool
+    
+    def copy(self):
+        return self.__class__(*[self.__getattribute__(field.name) for field in fields(self.__class__)])
+
+MetaLayerNames = [field.name for field in fields(_ParserState)]
+ParserState = lambda : _ParserState(*[None]*13)
+
 def bitarray(op,startStops):
     results = {}
     for key,(start,end) in startStops.items():
@@ -86,8 +111,9 @@ primitiveTypeMap = {
 
 def parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info):
     faces = []
+    ps = []
     pmo.seek(index_address)
-    for indexData in index_counts:
+    for indexData,parser_state in index_counts:
         count = indexData["indexCount"]
         primitive_type = indexData["primitiveType"]
         index = [ix.index for ix in C.Struct("index" / index_buffer[count]).parse_stream(pmo).index]
@@ -96,16 +122,17 @@ def parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info):
         if primitive_type == 3:
             r = range(0, count, 3)
         elif primitive_type != 4:
-            ValueError('Unsupported primative type: 0x{:02X}'.format(primitive_type))
+            ValueError('Unsupported primitive type: 0x{:02X}'.format(primitive_type))
         signum = 0 + face_order
         for i in r:
             #print(len(faces))
             face = (index[i+signum],index[i+1-signum], index[i+2])
             signum = (signum + 1)%2
             faces.append(face)
+            ps.append(parser_state)
             #print(face)
         #print()
-    return faces
+    return faces, ps
 
 def parseVertices(pmo, vertex_address,vertexBuffer,index,weights,info):
     vertices = []
@@ -116,11 +143,26 @@ def parseVertices(pmo, vertex_address,vertexBuffer,index,weights,info):
         vertices.append(vertex)
     return vertices
 
-def run_ge(pmo,weights,debug = None):
+def run_ge(pmo,weights,parser_state,debug = None):
     base = pmo.tell()
     def info(op):
-        return
         print("        %s: %d - %X"%(op,pmo.tell()-4-base,pmo.tell()-4))
+        return
+    ps = parser_state
+    bool_commands = {
+        0x17 : ("lighting_enable","LTE"),
+        0x1c : ("clipping_enable", "CLE"),
+        0x1d : ("backface_culling", "BCE"),
+        0x1e : ("texture_enable", "TME"),
+        0x1f : ("fog_enable", "FGE"),
+        0x20 : ("dither_enable", "DTE"),
+        0x22 : ("alpha_test_enable", "ATE"),
+        0x23 : ("depth_test_enable", "ZTE"),
+        0x25 : ("antialiasing_enable", "AAE"),
+        0x26 : ("patch_culling_enable", "PCE"),
+        0x27 : ("color_test_enable", "CTE"),        
+        }
+        
     index_counts = []
     while True:
         command = array.array('I', pmo.read(4))[0]
@@ -152,30 +194,34 @@ def run_ge(pmo,weights,debug = None):
         # PRIM - Primitive Kick
         elif command_type == 0x04:
             info("PRIM")
-            index_counts.append(bitarray(command,primitiveTypeMap))
-        # BCE - Backface Culling Enable
-        elif command_type == 0x1d:
-            info("BCE")
-            #backface_culling = command & 1
+            index_counts.append((bitarray(command,primitiveTypeMap),ps.copy()))
+            
+        # Bool Commands Table
+        elif command_type in bool_commands:
+            field,code = bool_commands[command_type]
+            info(code)
+            setattr(ps,field,command & 0xFFFFFF)
+            
         # ABE - Alpha Blending
         elif command_type == 0x21:
             info("ABE")
-            #alpha_blending = command #mask blending mode missing
+            parser_state.alpha_blending = command & 0xFFFFFF#mask blending mode missing
         # ATEST - Alpha Test
         elif command_type == 0xdb:
             info("ATEST")
-            #alpha_test = command #mask blending mode missing
+            parser_state.alpha_test = command & 0xFFFFFF#mask blending mode missing
         # RET - Return from Call
         elif command_type == 0x0b:
             info("RET")
             break
         # ??? - Offset Address (BASE)
         elif command_type == 0x13: info("OFF_BASE")
-        else:raise ValueError('Unknown GE command: 0x{:02X}'.format(command_type))
+        else: raise ValueError('Unknown GE command: 0x{:02X}'.format(command_type))
     #print(index_counts)
-    faces = parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info)
+    faces,pss = parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info)
     #print(vertex_address)
     vertices = parseVertices(pmo,vertex_address,vertex_buffer,max(map(max,faces))+1,weights,info)
+    faces = list(zip(faces,pss))
     if debug != None:
         debug.append(index_address)
         debug.append(vertex_address)

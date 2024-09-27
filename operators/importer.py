@@ -14,6 +14,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 from ..struct.pmo import load_pmo, load_cmo
+from ..struct.pmo_parse import MetaLayerNames
 
 """
 ============================================
@@ -130,6 +131,11 @@ class ImportPMO(Operator, ImportHelper):
         name = "Enforce Normals",
         description = "Forces Face Normals to Follow Edge Normals.",
         default = False)
+    importMetalayers : BoolProperty(
+        name = "Import Additional Meta Layers",
+        description = "Import additional GPU per Face Command Options",
+        default = False
+        )
     texturePath : StringProperty(
         name = "Texture Folder",
         description = "Folder were suspect textures are, leave empty to do Pray to God Search.",
@@ -197,8 +203,9 @@ class ImportPMO(Operator, ImportHelper):
                 texturemap[tindex] = texture
             matname = "PMO_Material_%03d"%(mat.index)
             material = materialSetup(matname,texture)
-            for f in ["rgba","rgba2","unkn"]:
-                material[f] = mat[f]
+            mat["texture_index"] = mat["textureID"]
+            for f in ["rgba","shadow_rgba","texture_index"]:
+                material["pmo_"+f] = mat[f]
             mapping[mat.index] = material
         return mapping
 
@@ -245,7 +252,25 @@ class ImportPMO(Operator, ImportHelper):
         blenderBMesh.to_mesh(mesh)
         mesh.update()
 
-    def loadMesh(self,materials,meshdata,faces,mat,scale,uvScale):
+    def decomposeMetaLayers(self,metalayers):
+        fields = MetaLayerNames
+        layers = []
+        for field in fields:
+            f = [getattr(m,field) for m in metalayers]
+            print(field)
+            print(f)
+            if any(f):
+                fieldn = field.replace("_"," ").title()
+                layers.append((fieldn,f))
+        return layers
+
+    def parseMetaLayers(self,obj,metalayers):
+        layers = self.decomposeMetaLayers(metalayers)
+        for fieldn,layer in layers:
+            dal = obj.data.attributes.new(name = fieldn, type = "INT", domain = "FACE")
+            dal.data.foreach_set('value',layer)
+
+    def loadMesh(self,materials,meshdata,faces,metalayers,mat,scale,uvScale):
         #print("Mesh Started")
         mesh = bpy.data.meshes.new(name="PMO_Mesh")
         verts,normals,uvs,color,weights = self.parseVerts(meshdata,scale,uvScale)
@@ -273,6 +298,8 @@ class ImportPMO(Operator, ImportHelper):
         mesh.update()
         obj = bpy.data.objects.new('PMO_Mesh',mesh)
         bpy.context.collection.objects.link(obj)
+        if self.importMetalayers: 
+            self.parseMetaLayers(obj,metalayers)
         if weights:
             self.setWeights(obj,weights)
         return obj

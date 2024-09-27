@@ -107,7 +107,7 @@ struct Skeleton(int count){
 
 struct MaterialContent{
     byte rgba[4];
-    byte rgba2[4];
+    byte shadow_rgba[4];
     int textureIndex;
     byte unkn[4];
 };

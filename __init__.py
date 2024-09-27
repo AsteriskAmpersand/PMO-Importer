@@ -27,7 +27,26 @@ from .operators.ahi_converter import ConvertAHI
 
 classes = [ImportPMO,ImportFUAHI,ConvertAHI]
 
+def class_defs():
+    mat = bpy.types.Material
+    bprops = bpy.props
+    try:
+        mat.pmo_rgba = bprops.FloatVectorProperty(size=4, default=(1.0, 1.0, 1.0, 1.0), 
+                                             min=0, max=1, subtype='COLOR')
+    except:
+        pass
+    try:
+        mat.pmo_shadow_rgba = bprops.FloatVectorProperty(size=4, default=(1.0, 1.0, 1.0, 1.0), 
+                                             min=0, max=1, subtype='COLOR')
+    except:
+        pass
+    try:
+        mat.pmo_texture_index = bpy.props.IntProperty(name="Texture Index", min=0)
+    except:
+        pass
+
 def register():
+    class_defs()
     for cl in classes:
         bpy.utils.register_class(cl)
     bpy.types.TOPBAR_MT_file_import.append(pmo_model_menu_func_import)

@@ -260,7 +260,7 @@ class ImportPMO(Operator, ImportHelper):
             print(field)
             print(f)
             if any(f):
-                fieldn = field.replace("_"," ").title()
+                fieldn = "PMO " + field.replace("_"," ").title()
                 layers.append((fieldn,f))
         return layers
 

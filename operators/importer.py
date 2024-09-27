@@ -203,9 +203,9 @@ class ImportPMO(Operator, ImportHelper):
                 texturemap[tindex] = texture
             matname = "PMO_Material_%03d"%(mat.index)
             material = materialSetup(matname,texture)
-            mat["texture_index"] = mat["textureID"]
-            for f in ["rgba","shadow_rgba","texture_index"]:
-                material["pmo_"+f] = mat[f]
+            for f,fn in zip(["rgba","shadow_rgba","textureID"],
+                        ["diffuse","ambient","texture_index"]):
+                material["pmo_"+fn] = mat[f]
             mapping[mat.index] = material
         return mapping
 

@@ -31,12 +31,12 @@ def class_defs():
     mat = bpy.types.Material
     bprops = bpy.props
     try:
-        mat.pmo_rgba = bprops.FloatVectorProperty(size=4, default=(1.0, 1.0, 1.0, 1.0), 
+        mat.pmo_diffuse = bprops.FloatVectorProperty(size=4, default=(1.0, 1.0, 1.0, 1.0), 
                                              min=0, max=1, subtype='COLOR')
     except:
         pass
     try:
-        mat.pmo_shadow_rgba = bprops.FloatVectorProperty(size=4, default=(1.0, 1.0, 1.0, 1.0), 
+        mat.pmo_ambient = bprops.FloatVectorProperty(size=4, default=(1.0, 1.0, 1.0, 1.0), 
                                              min=0, max=1, subtype='COLOR')
     except:
         pass

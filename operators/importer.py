@@ -317,7 +317,7 @@ class ImportPMO(Operator, ImportHelper):
         #meshpart.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
         meshpart.normals_split_custom_set_from_vertices([normalize(v) for v in normals])#normalize
         #meshpart.normals_split_custom_set([normals[loop.vertex_index] for loop in meshpart.loops])
-        meshpart.use_auto_smooth = True
+        if(hasattr(meshpart,"use_auto_smooth")): meshpart.use_auto_smooth = True
         #bpy.context.space_data.overlay.show_edge_sharp  = True
 
     def setFaceNormals(self,blenderMesh,normals):

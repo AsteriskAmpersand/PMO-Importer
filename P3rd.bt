@@ -1,0 +1,158 @@
+//------------------------------------------------
+//--- 010 Editor v9.0 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+int mod(int a, int b)
+{
+    local int r = a % b;
+    return r < 0 ? r + b : r;
+}
+
+struct alignment(int l){
+    local int t;
+    t = FTell();
+    byte padding[mod(-t,l)];
+};
+
+struct Header{
+    string pmo;
+    byte ver[4];
+    uint fileSize;//0
+    float clippingDistance;//1
+    float scale[3];//2 3 4
+    ushort meshCount;// 5
+    ushort materialCount;// 6 ??
+    uint meshHeaderOffset<format = hex>;//7
+    uint vertexGroupHeaderOffset<format = hex>;//8
+    uint materialRemapOffset<format = hex>;//9
+    uint skeletonOffset<format = hex>;//10
+    uint materialDataOffset<format = hex>;//11
+    uint meshDataOffset<format = hex>;//12
+    alignment padding(16);
+};
+
+
+struct MeshHeader{
+    float unusedScale[4];//0 1
+    float uvScale[2];
+    int32 unknown[4];
+    ushort materialCount;//4
+    ushort cumulativeMaterialCount;//5
+    ushort subMeshCount;//6
+    ushort cumulativeSubMeshCount;//7
+    //float unkn3[2];//9 10
+};
+
+string readMeshHeader(MeshHeader &mh){
+    local string s;
+    SPrintf(s,"%d | %d",mh.materialCount,mh.cumulativeMaterialCount);
+    return s;
+}
+
+struct VertexGroupHeader{
+    ubyte materialOffset;
+    byte weightCount;
+    short cumulativeWeightCount;
+    uint meshOffset;
+    uint vertexOffset;
+    uint indexOffset;
+};
+
+string readSubmeshHeader(VertexGroupHeader &vgh){
+    local string s;
+    SPrintf(s,"%d | %d | %d | %d | %d | %d",vgh.materialOffset,vgh.weightCount,vgh.cumulativeWeightCount,vgh.meshOffset,vgh.vertexOffset,vgh.indexOffset);
+    return s;
+}
+
+struct SubmeshGroups(int count){
+    VertexGroupHeader submeshHeaders[count]<read=readSubmeshHeader>;
+};
+
+struct SubmeshGrouping(int count){
+    local int i;
+    for (i=0;i<count;i++){
+        SubmeshGroups submeshGroup(meshHeaders[i].subMeshCount);
+    };
+    alignment padding(16);
+};
+
+struct MaterialIndices(int count){
+    byte material[count];
+    alignment padding(16);
+};
+
+struct Weight{
+    byte index;
+    byte weightVal;
+    //byte weightVal;
+};
+
+string readWeight(Weight &wt){
+    local string s;
+    SPrintf(s,"%d | %03d",wt.index,wt.weightVal);
+    return s;
+}
+
+struct Skeleton(int count){
+    Weight data[count]<read = readWeight>;
+    alignment padding(16);
+};
+
+struct MaterialContent{
+    byte rgba[4];
+    byte shadow_rgba[4];
+    int textureIndex;
+    byte unkn[4];
+};
+
+struct MaterialData(int count){
+    MaterialContent materialParams[count];
+    alignment padding(16);
+};
+
+struct MeshData{
+    int guard;
+};
+
+Header header;
+if (header.meshHeaderOffset){MeshHeader meshHeaders[header.meshCount]<read=readMeshHeader>;
+alignment padding(16);}
+if (header.vertexGroupHeaderOffset){SubmeshGrouping submeshHeaders(header.meshCount);}
+if(header.materialRemapOffset){MaterialIndices materialRemap(meshHeaders[header.meshCount-1].materialCount+meshHeaders[header.meshCount-1].cumulativeMaterialCount);}
+
+if(header.skeletonOffset){Skeleton skeleton(submeshHeaders.submeshGroup[header.meshCount-1].submeshHeaders[meshHeaders[header.meshCount-1].subMeshCount-1].cumulativeWeightCount +
+                  submeshHeaders.submeshGroup[header.meshCount-1].submeshHeaders[meshHeaders[header.meshCount-1].subMeshCount-1].weightCount);}
+
+if(header.materialDataOffset){MaterialData materialData(header.materialCount);}
+
+FSeek(header.meshDataOffset);
+MeshData meshes;
+
+//003 - 
+//002 - 9 -> 20
+//001 - 5 -> 20
+
+//00 - 15840, 
+//01 - 118.8517837524414, 
+//02 - 95.60398864746094, 
+//03 - 118.8517837524414, 
+//04 - 88.38003540039062, 
+//05 - 1, 
+//06 - 8, 
+//07 - 64, 
+//08 - 96, 
+//09 - 544, 
+//10 - 560, 
+//11 - 624, 
+//12 - 752, 
+//13 - 0, 
+//14 - 0

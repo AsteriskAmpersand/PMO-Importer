@@ -257,8 +257,6 @@ class ImportPMO(Operator, ImportHelper):
         layers = []
         for field in fields:
             f = [getattr(m,field) for m in metalayers]
-            print(field)
-            print(f)
             if any(f):
                 fieldn = "PMO " + field.replace("_"," ").title()
                 layers.append((fieldn,f))

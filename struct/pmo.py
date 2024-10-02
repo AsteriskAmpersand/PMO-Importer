@@ -22,6 +22,7 @@ alignment = C.Struct(
 Header = C.Struct(
     "pmo" / C.Int8ul[4],
     "ver" / C.Int8ul[4],
+    "game" / C.Computed(lambda ctx: "P3rd" if C.this.ver == list(b"102\x00") else "FU"),
     "filesize" / C.Int32ul,
     "clippingDistance" / C.Float32l,
     "scale" / C.Float32l[3],
@@ -34,6 +35,7 @@ Header = C.Struct(
     "materialDataOffset" / C.Int32ul,
     "meshDataOffset" / C.Int32ul,
     "padding" / alignment,
+    #C.Probe(),
     )
 
 VertexGroupHeader = C.Struct(
@@ -46,12 +48,14 @@ VertexGroupHeader = C.Struct(
     )
 
 MeshHeader = C.Struct(
+    "scale" / C.If(C.this._.header.game == "P3rd",C.Float32l[4]),
     "uvScale" / C.Float32l[2],
-    "unkn1" / C.Int8ul[8],
+    "unkn1" / C.IfThenElse(C.this._.header.game == "P3rd",C.Int32sl[4],C.Int8ul[8]),
     "materialCount" / C.Int16ul,
     "cumulativeMaterialCount" / C.Int16ul,
     "subMeshCount" / C.Int16ul,
     "cumulativeSubmeshCount" / C.Int16ul,
+    #C.Probe(),
     "submeshHeaders" / C.Pointer(C.this._.header.vertexGroupHeaderOffset + C.this.cumulativeSubmeshCount*VertexGroupHeader.sizeof(),
                                  VertexGroupHeader[C.this.subMeshCount])
     )
@@ -74,10 +78,14 @@ PMO = C.Struct(
     "padding0" / alignment,
     "meshHeaders" / MeshHeader[C.this.header.meshCount],
     "padding1" / alignment,
-    C.Seek(C.this.header.materialRemapOffset),
-    "materialRemapCount" / C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].cumulativeMaterialCount + this.meshHeaders[this.header.meshCount-1].materialCount),
-    "materialRemap" / C.Int8ul[C.this.materialRemapCount],
+    #C.Probe(),
+    C.If(C.this.header.materialRemapOffset, C.Seek(C.this.header.materialRemapOffset)),
+    "materialRemapCount" / C.If(C.this.header.materialRemapOffset, 
+                                C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].cumulativeMaterialCount + this.meshHeaders[this.header.meshCount-1].materialCount)),
+    "materialRemap" / C.If(C.this.header.materialRemapOffset, 
+                           C.Int8ul[C.this.materialRemapCount]),
     "padding3" / alignment,
+    #C.Probe(),
     "skeletonRemapCount" / C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].boneCount+
                                                   this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].cumulativeBoneCount),
     "skeleton" / Skeleton[C.this.skeletonRemapCount],
@@ -114,7 +122,7 @@ def load_pmo(pmopath):
                 weightData.consume(tristripHeader.boneCount)
                 try:
                     matRIx = mesh.cumulativeMaterialCount + tristripHeader.materialOffset
-                    matIx = pmo.materialRemap[matRIx]
+                    matIx = pmo.materialRemap[matRIx] if pmo.materialRemap else matRIx
                     mat = pmo.materialData[matIx]
                 except:
                     mat = pmo.materialData[0]
@@ -143,6 +151,7 @@ def load_cmo(cmopath):
 
 if __name__ in "__main__":
     from pathlib import Path
+    raise
     for file in Path(r"D:\Downloads\em37\models\models").rglob("*.pmo"):
         #print(file)
         meshes,pmo = load_pmo(file)

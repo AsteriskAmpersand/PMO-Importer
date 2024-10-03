@@ -177,8 +177,9 @@ class ImportPMO(Operator, ImportHelper):
                 if tex is not None:
                     return tex
         else:
-            #print(self.properties.filepath)
+            #print("Texture",self.properties.filepath,tindex)
             for p in Path(self.properties.filepath).parent.rglob("*%03d*.png"%tindex):
+                #print("Path",p)
                 tex = self.fetchTexture(str(p))
                 if tex is not None:
                     return tex

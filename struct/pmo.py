@@ -31,11 +31,11 @@ Header = C.Struct(
     "meshHeaderOffset" / C.Int32ul,
     "vertexGroupHeaderOffset" / C.Int32ul,
     "materialRemapOffset" / C.Int32ul,
-    "unknI10" / C.Int32ul,
+    "skeletonOffset" / C.Int32ul,
     "materialDataOffset" / C.Int32ul,
     "meshDataOffset" / C.Int32ul,
     "padding" / alignment,
-    #C.Probe(),
+    C.Probe(),
     )
 
 VertexGroupHeader = C.Struct(
@@ -55,7 +55,7 @@ MeshHeader = C.Struct(
     "cumulativeMaterialCount" / C.Int16ul,
     "subMeshCount" / C.Int16ul,
     "cumulativeSubmeshCount" / C.Int16ul,
-    #C.Probe(),
+    C.Probe(),
     "submeshHeaders" / C.Pointer(C.this._.header.vertexGroupHeaderOffset + C.this.cumulativeSubmeshCount*VertexGroupHeader.sizeof(),
                                  VertexGroupHeader[C.this.subMeshCount])
     )
@@ -78,18 +78,20 @@ PMO = C.Struct(
     "padding0" / alignment,
     "meshHeaders" / MeshHeader[C.this.header.meshCount],
     "padding1" / alignment,
-    #C.Probe(),
+    C.Probe(),
     C.If(C.this.header.materialRemapOffset, C.Seek(C.this.header.materialRemapOffset)),
     "materialRemapCount" / C.If(C.this.header.materialRemapOffset, 
                                 C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].cumulativeMaterialCount + this.meshHeaders[this.header.meshCount-1].materialCount)),
     "materialRemap" / C.If(C.this.header.materialRemapOffset, 
                            C.Int8ul[C.this.materialRemapCount]),
     "padding3" / alignment,
-    ##C.Probe(),
+    #C.Probe(),
+    C.Seek(C.this.header.skeletonOffset),
     "skeletonRemapCount" / C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].boneCount+
                                                   this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].cumulativeBoneCount),
     "skeleton" / Skeleton[C.this.skeletonRemapCount],
     "padding4" / alignment,
+    C.Seek(C.this.header.materialDataOffset),
     "materialData" / MaterialContent[C.this.header.materialCount],
     C.Seek(C.this.header.meshDataOffset),
     )
@@ -151,6 +153,7 @@ def load_cmo(cmopath):
 
 if __name__ in "__main__":
     from pathlib import Path
+    meshes,pmo = load_pmo(r'C:\Users\Asterisk\Downloads\lances\1587\000_data.pmo')
     raise
     for file in Path(r"D:\Downloads\em37\models\models").rglob("*.pmo"):
         #print(file)

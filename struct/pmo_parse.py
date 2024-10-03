@@ -46,12 +46,13 @@ class _ParserState:
     antialiasing_enable : bool
     patch_culling_enable : bool
     color_test_enable : bool
+    face_order :  int
     
     def copy(self):
         return self.__class__(*[self.__getattribute__(field.name) for field in fields(self.__class__)])
 
 MetaLayerNames = [field.name for field in fields(_ParserState)]
-ParserState = lambda : _ParserState(*[None]*13)
+ParserState = lambda : _ParserState(*[None]*13,0)
 
 def bitarray(op,startStops):
     results = {}
@@ -108,22 +109,32 @@ primitiveTypeMap = {
     "operator" : (24,32),
     }
 
+class IdentityList(list):
+    def __getitem__(self, i):
+        return i
 
-def parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info):
+def parseFaces(pmo,index_address,index_buffer,index_counts,info):
     faces = []
     ps = []
     pmo.seek(index_address)
     for indexData,parser_state in index_counts:
         count = indexData["indexCount"]
         primitive_type = indexData["primitiveType"]
-        index = [ix.index for ix in C.Struct("index" / index_buffer[count]).parse_stream(pmo).index]
+        strct = C.Struct("index" / index_buffer[count]).parse_stream(pmo)
+        if strct and any(strct.index): 
+            index = [ix.index for ix in strct.index]
+        elif index_buffer == C.Pass:
+            index = list(range(count))
+            print("Empty Index Structure in Tristrip")
+        else:
+            raise ValueError("Invalid Index Buffer Structure")
         #if face_order: index = list(reversed(index))
         r = range(count - 2)
         if primitive_type == 3:
             r = range(0, count, 3)
         elif primitive_type != 4:
             ValueError('Unsupported primitive type: 0x{:02X}'.format(primitive_type))
-        signum = 0 + face_order
+        signum = 0 + parser_state.face_order
         for i in r:
             #print(len(faces))
             face = (index[i+signum],index[i+1-signum], index[i+2])
@@ -164,6 +175,8 @@ def run_ge(pmo,weights,parser_state,debug = None):
         }
         
     index_counts = []
+    index_address = 0
+    parser_state.face_order = 0
     while True:
         command = array.array('I', pmo.read(4))[0]
         command_type = command >> 24
@@ -188,7 +201,7 @@ def run_ge(pmo,weights,parser_state,debug = None):
         # FFACE - Front Face Culling Order
         elif command_type == 0x9b:
             info ("FACE_CULL")
-            face_order = command & 1
+            parser_state.face_order = command & 1
             if command & 0xfffffE:
                 print (bin(command & 0xfffffE))
         # PRIM - Primitive Kick
@@ -218,7 +231,7 @@ def run_ge(pmo,weights,parser_state,debug = None):
         elif command_type == 0x13: info("OFF_BASE")
         else: raise ValueError('Unknown GE command: 0x{:02X}'.format(command_type))
     #print(index_counts)
-    faces,pss = parseFaces(pmo,index_address,index_buffer,index_counts,face_order,info)
+    faces,pss = parseFaces(pmo,index_address,index_buffer,index_counts,info)
     #print(vertex_address)
     vertices = parseVertices(pmo,vertex_address,vertex_buffer,max(map(max,faces))+1,weights,info)
     faces = list(zip(faces,pss))

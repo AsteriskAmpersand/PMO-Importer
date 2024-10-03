@@ -22,7 +22,7 @@ alignment = C.Struct(
 Header = C.Struct(
     "pmo" / C.Int8ul[4],
     "ver" / C.Int8ul[4],
-    "game" / C.Computed(lambda ctx: "P3rd" if C.this.ver == list(b"102\x00") else "FU"),
+    "game" / C.Computed(lambda ctx: "P3rd" if (ctx.ver == list(b"102\x00")) else "FU"),
     "filesize" / C.Int32ul,
     "clippingDistance" / C.Float32l,
     "scale" / C.Float32l[3],
@@ -85,7 +85,7 @@ PMO = C.Struct(
     "materialRemap" / C.If(C.this.header.materialRemapOffset, 
                            C.Int8ul[C.this.materialRemapCount]),
     "padding3" / alignment,
-    #C.Probe(),
+    ##C.Probe(),
     "skeletonRemapCount" / C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].boneCount+
                                                   this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].cumulativeBoneCount),
     "skeleton" / Skeleton[C.this.skeletonRemapCount],

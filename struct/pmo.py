@@ -35,7 +35,7 @@ Header = C.Struct(
     "materialDataOffset" / C.Int32ul,
     "meshDataOffset" / C.Int32ul,
     "padding" / alignment,
-    C.Probe(),
+    #C.Probe(),
     )
 
 VertexGroupHeader = C.Struct(
@@ -55,7 +55,7 @@ MeshHeader = C.Struct(
     "cumulativeMaterialCount" / C.Int16ul,
     "subMeshCount" / C.Int16ul,
     "cumulativeSubmeshCount" / C.Int16ul,
-    C.Probe(),
+    #C.Probe(),
     "submeshHeaders" / C.Pointer(C.this._.header.vertexGroupHeaderOffset + C.this.cumulativeSubmeshCount*VertexGroupHeader.sizeof(),
                                  VertexGroupHeader[C.this.subMeshCount])
     )
@@ -78,14 +78,14 @@ PMO = C.Struct(
     "padding0" / alignment,
     "meshHeaders" / MeshHeader[C.this.header.meshCount],
     "padding1" / alignment,
-    C.Probe(),
+    #C.Probe(),
     C.If(C.this.header.materialRemapOffset, C.Seek(C.this.header.materialRemapOffset)),
     "materialRemapCount" / C.If(C.this.header.materialRemapOffset, 
                                 C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].cumulativeMaterialCount + this.meshHeaders[this.header.meshCount-1].materialCount)),
     "materialRemap" / C.If(C.this.header.materialRemapOffset, 
                            C.Int8ul[C.this.materialRemapCount]),
     "padding3" / alignment,
-    #C.Probe(),
+    ##C.Probe(),
     C.Seek(C.this.header.skeletonOffset),
     "skeletonRemapCount" / C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].boneCount+
                                                   this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].cumulativeBoneCount),

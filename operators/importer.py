@@ -88,15 +88,9 @@ def materialSetup(matName,texture):
     diffuseNode = createTexNode(nodeTree,"COLOR",texture,"Diffuse Texture")
     setLocation(diffuseNode,(0,0))
 
-    transparentNode = nodeTree.nodes.new(type="ShaderNodeBsdfTransparent")
-    setLocation(transparentNode,(6,7))
-    alphaMixerNode = nodeTree.nodes.new(type="ShaderNodeMixShader")
-    setLocation(alphaMixerNode,(10,1))
     nodeTree.links.new(diffuseNode.outputs[0],bsdfNode.inputs[0])
-    nodeTree.links.new(diffuseNode.outputs[1],alphaMixerNode.inputs[0])
-    nodeTree.links.new(transparentNode.outputs[0],alphaMixerNode.inputs[1])
+    nodeTree.links.new(diffuseNode.outputs[1],bsdfNode.inputs[4])
 
-    nodeTree.links.new(endNode.outputs[0],alphaMixerNode.inputs[2])
     outputNode = nodeTree.nodes.new(type="ShaderNodeOutputMaterial")
     nodeTree.links.new(endNode.outputs[0],outputNode.inputs[0])
 

@@ -85,7 +85,7 @@ PMO = C.Struct(
     "materialRemap" / C.If(C.this.header.materialRemapOffset, 
                            C.Int8ul[C.this.materialRemapCount]),
     "padding3" / alignment,
-    ##C.Probe(),
+    #C.Probe(),
     C.Seek(C.this.header.skeletonOffset),
     "skeletonRemapCount" / C.Computed(lambda this: this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].boneCount+
                                                   this.meshHeaders[this.header.meshCount-1].submeshHeaders[this.meshHeaders[this.header.meshCount-1].subMeshCount-1].cumulativeBoneCount),

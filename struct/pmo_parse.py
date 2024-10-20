@@ -206,20 +206,23 @@ class VertexDictionary():
 
 def build_prim(command,ps,pmo,verts,faces,pss,vertexDict,base,weights):
     indexData = bitarray(command,primitiveTypeMap)
-    instruction_pointer = pmo.tell()
-    pmo.seek(ps.index_address)
     count = indexData["indexCount"]
     primitive_type = indexData["primitiveType"]
-    strct = C.Struct("index" / ps.index_buffer[count]).parse_stream(pmo)
-    if strct and any(strct.index): 
-        indices = [ix.index for ix in strct.index]
-    elif ps.index_buffer == C.Pass:
+    instruction_pointer = pmo.tell()
+    if ps.index_address is not None:
+        pmo.seek(ps.index_address)
+        strct = C.Struct("index" / ps.index_buffer[count]).parse_stream(pmo)
+        if strct and any(strct.index): 
+            indices = [ix.index for ix in strct.index]
+        elif ps.index_buffer == C.Pass:
+            indices = list(range(count))
+            print("Empty Index Structure in Tristrip")
+        else:
+            raise ValueError("Invalid Index Buffer Structure")
+        ps.index_address = pmo.tell()
+    else:
         indices = list(range(count))
         print("Empty Index Structure in Tristrip")
-    else:
-        raise ValueError("Invalid Index Buffer Structure")
-    ps.index_address = pmo.tell()
-    
     r = range(count - 2)
     if primitive_type == 3:
         r = range(0, count, 3)

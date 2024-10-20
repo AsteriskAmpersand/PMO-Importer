@@ -153,7 +153,7 @@ def load_cmo(cmopath):
 
 if __name__ in "__main__":
     from pathlib import Path
-    meshes,pmo = load_pmo(r'C:\Users\Asterisk\Downloads\lances\1587\000_data.pmo')
+    meshes,pmo = load_pmo(r'C:\Users\Asterisk\Downloads\new.pmo')
     raise
     for file in Path(r"D:\Downloads\em37\models\models").rglob("*.pmo"):
         #print(file)

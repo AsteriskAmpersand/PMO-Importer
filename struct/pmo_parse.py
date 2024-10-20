@@ -48,11 +48,21 @@ class _ParserState:
     color_test_enable : bool
     face_order :  int
     
+    index_address  :  int
+    vertex_address :  int 
+    index_buffer  :  int
+    vertex_buffer  :  int  
+    base : int
+    offset : int
+    root : int
+    
+    null : int
+
     def copy(self):
         return self.__class__(*[self.__getattribute__(field.name) for field in fields(self.__class__)])
 
 MetaLayerNames = [field.name for field in fields(_ParserState)]
-ParserState = lambda : _ParserState(*[None]*13,0)
+ParserState = lambda : _ParserState(*[None]*21,0)
 
 def bitarray(op,startStops):
     results = {}
@@ -117,6 +127,7 @@ def parseFaces(pmo,index_address,index_buffer,index_counts,info):
     faces = []
     ps = []
     pmo.seek(index_address)
+    #(bitarray(command,primitiveTypeMap),ps.copy())
     for indexData,parser_state in index_counts:
         count = indexData["indexCount"]
         primitive_type = indexData["primitiveType"]
@@ -154,88 +165,131 @@ def parseVertices(pmo, vertex_address,vertexBuffer,index,weights,info):
         vertices.append(vertex)
     return vertices
 
+bool_commands = {
+    0x17 : ("lighting_enable","LTE"),
+    0x1c : ("clipping_enable", "CLE"),
+    0x1d : ("backface_culling", "BCE"),
+    0x1e : ("texture_enable", "TME"),
+    0x1f : ("fog_enable", "FGE"),
+    0x20 : ("dither_enable", "DTE"),
+    0x22 : ("alpha_test_enable", "ATE"),
+    0x23 : ("depth_test_enable", "ZTE"),
+    0x25 : ("antialiasing_enable", "AAE"),
+    0x26 : ("patch_culling_enable", "PCE"),
+    0x27 : ("color_test_enable", "CTE"),        
+    }
+
+gpu_commands = {
+    #command : (function, code)
+    0x00 : ("null","NOP"),       # NOP - No Operation
+    0x14 : ("origin","ORI_BASE"),  # ??? - Origin Address (BASE)
+    0x10 : ("base", "BASE"),     # BASE - Base Address Register
+    0x01 : ("vertex_address","VADDR"),          # VADDR - Vertex Address (BASE)     index_buffer, vertex_buffer = vertexType(command)
+    #0x12 : ("index_buffer","VTYPE"),          # VTYPE - Vertex Type   
+    0x9b : ("face_order","FACE_CULL"),      # FFACE - Front Face Culling Order
+    0x21 : ("alpha_blending","ABE"),            # ABE - Alpha Blending  
+    0xdb : ("alpha_test","ATEST"),          # ATEST - Alpha Test  
+    0x13 : ("offset","OFF_BASE"),       # ??? - Offset Address (BASE)   
+   }  
+
+class VertexDictionary():
+    def __init__(self):
+        self.autonum = 0
+        self.verts = {}
+    def __getitem__(self,key):
+        return self.verts[key]
+    def __setitem__(self,key,value):
+        self.verts[key] = self.autonum
+        self.autonum += 1
+    def __contains__(self,key):
+        return key in self.verts
+
+def build_prim(command,ps,pmo,verts,faces,pss,vertexDict,base,weights):
+    indexData = bitarray(command,primitiveTypeMap)
+    instruction_pointer = pmo.tell()
+    pmo.seek(ps.index_address)
+    count = indexData["indexCount"]
+    primitive_type = indexData["primitiveType"]
+    strct = C.Struct("index" / ps.index_buffer[count]).parse_stream(pmo)
+    if strct and any(strct.index): 
+        indices = [ix.index for ix in strct.index]
+    elif ps.index_buffer == C.Pass:
+        indices = list(range(count))
+        print("Empty Index Structure in Tristrip")
+    else:
+        raise ValueError("Invalid Index Buffer Structure")
+    ps.index_address = pmo.tell()
+    
+    r = range(count - 2)
+    if primitive_type == 3:
+        r = range(0, count, 3)
+    elif primitive_type != 4:
+        ValueError('Unsupported primitive type: 0x{:02X}'.format(primitive_type))
+    signum = 0 + ps.face_order
+    
+    
+    for i in r:
+        face = (indices[i+signum],indices[i+1-signum], indices[i+2])
+        signum = (signum + 1)%2
+        bl_vindices = []
+        for vindex in face:        
+            addr = base + ps.vertex_address + vindex * ps.vertex_buffer.sizeof()
+            if addr not in vertexDict:
+                pmo.seek(addr)
+                vertex = ps.vertex_buffer.parse_stream(pmo)
+                vertex["weightData"] = list(zip(weights,vertex.weight))
+                verts.append(vertex)
+                vertexDict[addr] = vertex
+            bl_vindices.append(vertexDict[addr])
+        faces.append(bl_vindices)
+        pss.append(ps.copy())
+    
+    pmo.seek(instruction_pointer)
+    return
+    
 def run_ge(pmo,weights,parser_state,debug = None):
     base = pmo.tell()
     def info(op):
         print("        %s: %d - %X"%(op,pmo.tell()-4-base,pmo.tell()-4))
         return
-    ps = parser_state
-    bool_commands = {
-        0x17 : ("lighting_enable","LTE"),
-        0x1c : ("clipping_enable", "CLE"),
-        0x1d : ("backface_culling", "BCE"),
-        0x1e : ("texture_enable", "TME"),
-        0x1f : ("fog_enable", "FGE"),
-        0x20 : ("dither_enable", "DTE"),
-        0x22 : ("alpha_test_enable", "ATE"),
-        0x23 : ("depth_test_enable", "ZTE"),
-        0x25 : ("antialiasing_enable", "AAE"),
-        0x26 : ("patch_culling_enable", "PCE"),
-        0x27 : ("color_test_enable", "CTE"),        
-        }
-        
-    index_counts = []
-    index_address = 0
+    ps = parser_state   
+    print("RIP: %X"%base)
+    vertices = []
+    faces = []
+    pss = []
     parser_state.face_order = 0
+    vertexDict = VertexDictionary()
     while True:
         command = array.array('I', pmo.read(4))[0]
         command_type = command >> 24
-        # NOP - No Operation
-        if command_type == 0x00: info("NOP")
-        # ??? - Origin Address (BASE)
-        elif command_type == 0x14: info ("ORI_BASE")
-        # BASE - Base Address Register
-        elif command_type == 0x10: info("BASE")
-        # IADDR - Index Address (BASE)
-        elif command_type == 0x02:
-            info("IADDR")
-            index_address = base + (command & 0xffffff)
-        # VADDR - Vertex Address (BASE)
-        elif command_type == 0x01:
-            info("VADDR")
-            vertex_address = base + (command & 0xffffff)
-        # VTYPE - Vertex Type
-        elif command_type == 0x12:
-            info("VTYPE")
-            index_buffer, vertex_buffer = vertexType(command)
-        # FFACE - Front Face Culling Order
-        elif command_type == 0x9b:
-            info ("FACE_CULL")
-            parser_state.face_order = command & 1
-            if command & 0xfffffE:
-                print (bin(command & 0xfffffE))
-        # PRIM - Primitive Kick
-        elif command_type == 0x04:
-            info("PRIM")
-            index_counts.append((bitarray(command,primitiveTypeMap),ps.copy()))
-            
+        # GPU Commands
+        if command_type in gpu_commands:
+            field,code = gpu_commands[command_type]
+            info(code)
+            setattr(ps,field,command & 0xFFFFFF)
         # Bool Commands Table
         elif command_type in bool_commands:
             field,code = bool_commands[command_type]
             info(code)
             setattr(ps,field,command & 0xFFFFFF)
-            
-        # ABE - Alpha Blending
-        elif command_type == 0x21:
-            info("ABE")
-            parser_state.alpha_blending = command & 0xFFFFFF#mask blending mode missing
-        # ATEST - Alpha Test
-        elif command_type == 0xdb:
-            info("ATEST")
-            parser_state.alpha_test = command & 0xFFFFFF#mask blending mode missing
+        elif command_type == 0x12:
+            info("VTYPE")
+            ps.index_buffer, ps.vertex_buffer = vertexType(command)
+        # IADDR - Index Address (BASE)
+        elif command_type == 0x02:
+            info(code)
+            ps.index_address = base + command & 0xFFFFFF
+        # PRIM - Primitive Kick  index_counts.append((bitarray(command,primitiveTypeMap),ps.copy()))
+        elif command_type == 0x04:
+            info("PRIM")
+            build_prim(command,parser_state,pmo,vertices,faces,pss,vertexDict,base,weights)# pass args here
         # RET - Return from Call
         elif command_type == 0x0b:
             info("RET")
             break
-        # ??? - Offset Address (BASE)
-        elif command_type == 0x13: info("OFF_BASE")
         else: raise ValueError('Unknown GE command: 0x{:02X}'.format(command_type))
-    #print(index_counts)
-    faces,pss = parseFaces(pmo,index_address,index_buffer,index_counts,info)
-    #print(vertex_address)
-    vertices = parseVertices(pmo,vertex_address,vertex_buffer,max(map(max,faces))+1,weights,info)
     faces = list(zip(faces,pss))
     if debug != None:
-        debug.append(index_address)
-        debug.append(vertex_address)
+        debug.append(ps.index_address)
+        debug.append(ps.vertex_address)
     return vertices, faces

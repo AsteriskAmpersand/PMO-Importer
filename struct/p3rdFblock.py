@@ -42,7 +42,7 @@ class BoneContent(PyCStruct):
             ])
     def marshall(self,data):
         super().marshall(data)
-        self.name = bytes(self.name).decode("utf-8").split('\x00', 1)[0]
+        self.name = bytes(self.name).split(b'\x00', 1)[0].decode("utf-8")
         return self
 
 class RawContent(PyCStruct):

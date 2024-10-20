@@ -44,3 +44,5 @@ class P3Skeleton(Skeleton):
 if "__main__" in __name__:
     fu = FUSkeleton(r'C:/Users/Asterisk/Downloads/rathfu - Copy.ahi')
     p3 = P3Skeleton(r'C:/Users/Asterisk/Downloads/p3rd_rath_skel - Copy.ahi')
+    p3 = P3Skeleton(r'C:/Users/Asterisk/Downloads/plate.ahi')
+    p3 = P3Skeleton(r'C:/Users/Asterisk/Downloads/test.ahi')

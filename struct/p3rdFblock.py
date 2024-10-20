@@ -38,7 +38,7 @@ class BoneContent(PyCStruct):
             ("pos","float[4]"),
             ("delimiter","uint32"),
             ("null","uint32"),
-            ("name","byte[8]")
+            ("name","ubyte[8]")
             ])
     def marshall(self,data):
         super().marshall(data)

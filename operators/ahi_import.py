@@ -6,10 +6,11 @@ Created on Mon Dec 30 01:10:11 2019
 """
 import bpy
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 from ..struct import ahi_importer_layer
 from ..operators import ahi_converter
+
 
 class ImportFUAHI(Operator, ImportHelper):
     bl_idname = "custom_import.import_mhfu_ahi"
@@ -20,6 +21,12 @@ class ImportFUAHI(Operator, ImportHelper):
     filename_ext = ".fskl"
     filter_glob : StringProperty(default="*.ahi", options={'HIDDEN'}, maxlen=255)
     import_armature : BoolProperty(name = "Import as Armature", default = False)
+    rename : BoolProperty(name = "Rename Vertex Groups", default = True)
+    fformat : EnumProperty(
+        name = "Game Format",
+        description = "Select the game the AHI file comes from",
+        items = ahi_importer_layer.formats,
+        default = ahi_importer_layer.formats[0][0])
     
     def execute(self,context):
         try:
@@ -28,7 +35,7 @@ class ImportFUAHI(Operator, ImportHelper):
             pass
         bpy.ops.object.select_all(action='DESELECT')
         importer = ahi_importer_layer.AHIImporter()
-        root = importer.execute(self.properties.filepath)
+        root = importer.execute(context,self.properties.filepath,self.fformat,self.rename)
         if self.import_armature:
             ahi_converter.createArmature(root)
         return {'FINISHED'}

@@ -81,7 +81,8 @@ class PyCStruct():
                 
     def marshall(self,data):
         [self.__setattr__(attr, value) for attr, value in self.CStruct.marshall(data).items()]
-        
+        return self
+    
     def serialize(self):
         return self.CStruct.serialize({key:self.__getattribute__(key) for key in self.fields})
     
@@ -100,7 +101,8 @@ class PyCStruct():
                 raise KeyError("Required Property missing in supplied data")
             else:
                 self.__setattr__(field,None)
-                
+        return self
+    
     def verify(self):
         for attr in self.fields:
             if self.__getattribute__(attr) is None:

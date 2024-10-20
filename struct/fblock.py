@@ -88,9 +88,9 @@ class boneBlock(PyCStruct):
             ("parentID","int32"),
             ("leftChild","int32"),
             ("rightSibling","int32"),
-            ("vec1","float[4]"),
-            ("vec2","float[4]"),
-            ("posVec","float[4]"),
+            ("scale","float[4]"),
+            ("rot","float[4]"),
+            ("pos","float[4]"),
             ("null","uint32"),
             ("chainID","uint32"),
             ("unkn2","uint32[46]"),
@@ -118,8 +118,11 @@ class FBlock():
     def marshall(self, data):       
         self.Header.marshall(data)
         subData = FileLike(data.read(self.Header.size-len(self.Header)))
-        self.Data = [self.getType() for _ in range(self.Header.count)]
-        [datum.marshall(subData) for datum in self.Data]
+        self.Data = []
+        for _ in range(self.Header.count):
+            self.Data.append(self.getType().marshall(subData))
+        #self.Data = [self.getType().marshall(subData) for _ in range(self.Header.count)]
+        return self
     def prettyPrint(self, base = ""):
         name = type(self.getType()).__name__
         print(base+name+":"+" "+str(self.Header.count) + " \t"+hex(self.Header.type))
@@ -127,8 +130,7 @@ class FBlock():
             datum.prettyPrint(base+"\t")
     def getType(self):     
         return self.typeLookup(self.Header.type)()    
-    @staticmethod
-    def typeLookup(value):
+    def typeLookup(self,value):
         types = {
             0x00020000:InitBlock,
             0x00000001:FileBlock,
@@ -244,13 +246,15 @@ class InitData(PyCStruct):
 class InitBlock (FBlock):        
     def marshall(self, data):
         self.Data = InitData()
-        self.Data.marshall(data)
+        self.Data.marshall(data)    
+        return self
     def prettyPrint(self, base=""):
         pass
         
 class UnknBlock (FBlock):
     def marshall(self, data):
-        self.Data = data
+        self.Data = data    
+        return self
     def prettyPrint(self, base = ""):
         pass
 
@@ -258,6 +262,7 @@ class dataContainer():
     def marshall(self, data):
         self.Data = self.dataType()
         self.Data.marshall(data)     
+        return self
     def prettyPrint(self, base = ""):
         #name = type(self).__name__
         #print(base+name)

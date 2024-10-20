@@ -1,0 +1,61 @@
+//------------------------------------------------
+//--- 010 Editor v14.0 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+int mod(int a, int b)
+{
+    local int r = a % b;
+    return r < 0 ? r + b : r;
+}
+
+struct alignment(int l){
+    local int t;
+    t = FTell();
+    byte padding[mod(-t,l)];
+};
+
+struct Header{
+    int filetype<format = hex>;
+    int subcontainerCount;
+    int containerSize<format = hex>;
+};
+
+struct Bone{
+    int index;
+    int parent;
+    int leftChild;
+    int rightSibling;
+    float scale[4];
+    float rot[4];
+    float pos[4];
+    int delimiter2;
+    int null;
+    byte name[8];
+};
+    
+struct BoneBlock{
+    int filetype<format = hex>;
+    int subcontainerCount;
+    int containerSize<format = hex>;
+    Bone bones[subcontainerCount]<optimize=false>;
+};
+
+struct EntitiesBlock{
+    int filetype<format = hex>;
+    int subcontainerCount;
+    int containerSize;
+    int startIndex[subcontainerCount];
+    };
+
+
+Header header;
+EntitiesBlock block;
+BoneBlock bones[header.subcontainerCount-1]<optimize=false>;

@@ -69,6 +69,7 @@ class AHIImporter():
             AHIImporter.importBone(
                 skeletonStructure[bone.parentID], skeleton, skeletonStructure)
         o["id"] = bone.nodeID
+        o["chain id"] = bone.chainID
         o.parent = skeleton[bone.parentID]
         o.matrix_local = AHIImporter.deserializePoseVector(bone.pos, bone.scale, bone.rot)
         o.show_wire = True

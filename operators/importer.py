@@ -204,7 +204,7 @@ class ImportPMO(Operator, ImportHelper):
             mapping[mat.index] = material
         return mapping
 
-    def parseVerts(self,mesh,scale,uvScale):
+    def parseVerts(self,mesh,scale,uvModifier):
         #print("Verts Parsed")
         #print(len(mesh))
         verts = []
@@ -212,6 +212,8 @@ class ImportPMO(Operator, ImportHelper):
         uv = []
         col = []
         wts = []
+        uvScale = uvModifier[0]
+        uvOffset = uvModifier[1]
         for v in mesh:
             if v.position:
                 verts.append((v.position.x*scale[0],v.position.y*scale[1],v.position.z*scale[2]))
@@ -219,9 +221,11 @@ class ImportPMO(Operator, ImportHelper):
                 nors.append((v.normal.x,v.normal.y,v.normal.z))
             if v.uv:
                 if self.flipUV:
-                    uv.append((v.uv.u*uvScale[0],1 - v.uv.v*uvScale[1]))
+                    uv.append(     (v.uv.u*uvScale[0] + uvOffset[0],
+                               1 - (v.uv.v*uvScale[1]  - 2*uvOffset[1])))
                 else:
-                    uv.append((v.uv.u*uvScale[0],v.uv.v*uvScale[1]))
+                    uv.append((v.uv.u*uvScale[0] + uvOffset[0],
+                               v.uv.v*uvScale[1] - 2*uvOffset[1]))
             if v.colour:
                 col.append((v.colour.r,v.colour.g,v.colour.b,v.colour.a))
             if any(map(lambda x: x is not None, v.weight)):
@@ -263,10 +267,10 @@ class ImportPMO(Operator, ImportHelper):
             dal = obj.data.attributes.new(name = fieldn, type = "INT", domain = "FACE")
             dal.data.foreach_set('value',layer)
 
-    def loadMesh(self,materials,meshdata,faces,metalayers,mat,scale,uvScale):
+    def loadMesh(self,materials,meshdata,faces,metalayers,mat,scale,uvModifier):
         #print("Mesh Started")
         mesh = bpy.data.meshes.new(name="PMO_Mesh")
-        verts,normals,uvs,color,weights = self.parseVerts(meshdata,scale,uvScale)
+        verts,normals,uvs,color,weights = self.parseVerts(meshdata,scale,uvModifier)
         bfaces = self.parseFaces(faces)
         try:
             mesh.from_pydata(verts, [], bfaces)

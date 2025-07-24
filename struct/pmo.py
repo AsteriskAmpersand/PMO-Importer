@@ -50,7 +50,14 @@ VertexGroupHeader = C.Struct(
 MeshHeader = C.Struct(
     "scale" / C.If(C.this._.header.game == "P3rd",C.Float32l[4]),
     "uvScale" / C.Float32l[2],
-    "unkn1" / C.IfThenElse(C.this._.header.game == "P3rd",C.Int32sl[4],C.Int8ul[8]),
+    #Hack to have UV Scale on P3rd models
+    "unkn1" / C.IfThenElse(C.this._.header.game == "P3rd",
+                           C.Struct("uvOffset" / C.Float32l[2],
+                                    "unkn" / C.Int32sl[2]),
+                           C.Int8ul[8]),
+    "uvOffset" / C.IfThenElse(C.this._.header.game == "P3rd",
+                              C.Computed(C.this.unkn1.uvOffset),
+                              C.Computed((0,0))),
     "materialCount" / C.Int16ul,
     "cumulativeMaterialCount" / C.Int16ul,
     "subMeshCount" / C.Int16ul,
@@ -135,7 +142,8 @@ def load_pmo(pmopath):
                 pss += [p2 for face,p2 in f]
                 verts += v
                 materials += [mat.index for face in f]
-            meshes.append((verts,faces,pss,materials,pmo.header.scale,mesh.uvScale))
+            meshes.append((verts,faces,pss,materials,pmo.header.scale,(mesh.uvScale,mesh.uvOffset)))
+            #Insert uvOffset Here
     return meshes,pmo
 
 def load_cmo(cmopath):

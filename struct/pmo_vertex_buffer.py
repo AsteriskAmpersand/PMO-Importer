@@ -112,7 +112,7 @@ UV = lambda typing,normalizer,pad: C.Struct(
                     "raw_v" / typing,
                     "w" / pad,
                     "u" / C.Computed(C.this.raw_u/normalizer),
-                    "v" / C.Computed(1-C.this.raw_v/normalizer),
+                    "v" / C.Computed(C.this.raw_v/normalizer),
                     )  
 ByteUVU = UV(C.Int8ul,0x80,C.Int16ul)
 ShortUVU = UV(C.Int16ul,0x8000,C.Pass)

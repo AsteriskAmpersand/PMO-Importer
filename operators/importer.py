@@ -221,11 +221,11 @@ class ImportPMO(Operator, ImportHelper):
                 nors.append((v.normal.x,v.normal.y,v.normal.z))
             if v.uv:
                 if self.flipUV:
-                    uv.append(     (v.uv.u*uvScale[0] + uvOffset[0],
-                               1 - (v.uv.v*uvScale[1]  - 2*uvOffset[1])))
+                    uv.append( (v.uv.u*uvScale[0] + uvOffset[0],
+                               (v.uv.v*uvScale[1]  + uvOffset[1])))
                 else:
                     uv.append((v.uv.u*uvScale[0] + uvOffset[0],
-                               v.uv.v*uvScale[1] - 2*uvOffset[1]))
+                               1 - (v.uv.v*uvScale[1] + uvOffset[1])))
             if v.colour:
                 col.append((v.colour.r,v.colour.g,v.colour.b,v.colour.a))
             if any(map(lambda x: x is not None, v.weight)):
